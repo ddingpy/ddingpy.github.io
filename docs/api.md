@@ -1,18 +1,15 @@
 ---
-layout: default
-title: API Reference
-nav_order: 4
-has_children: true
+layout: single
+title: "API Reference"
 permalink: /api/
+toc: true
+toc_label: "API Contents"
+toc_icon: "code"
+toc_sticky: true
+classes: wide
 ---
 
-# API Reference
-{: .no_toc }
-
-Complete API documentation for developers
-{: .fs-6 .fw-300 }
-
----
+Complete API documentation for developers with examples, authentication guides, and best practices.
 
 ## Overview
 

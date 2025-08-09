@@ -1,18 +1,11 @@
 ---
-layout: default
-title: FAQ
-nav_order: 5
----
-
-# Frequently Asked Questions
-{: .no_toc }
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
+layout: single
+title: "Frequently Asked Questions"
+permalink: /faq/
+toc: true
+toc_label: "FAQ Topics"
+toc_icon: "question-circle"
+toc_sticky: true
 ---
 
 ## General Questions
@@ -303,7 +296,7 @@ No, our migration process is designed for zero downtime. We migrate in phases an
 
 Can't find what you're looking for?
 
-[Contact Support](mailto:support@example.com){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 }
+[Contact Support](mailto:support@example.com){: .btn .btn--primary .btn--large}
 
 ---
 

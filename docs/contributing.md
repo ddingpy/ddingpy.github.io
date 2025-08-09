@@ -1,22 +1,14 @@
 ---
-layout: default
-title: Contributing
-nav_order: 6
+layout: single
+title: "Contributing Guide"
+permalink: /contributing/
+toc: true
+toc_label: "How to Contribute"
+toc_icon: "hands-helping"
+toc_sticky: true
 ---
 
-# Contributing Guide
-{: .no_toc }
-
-Help us improve our documentation and platform
-{: .fs-6 .fw-300 }
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
----
+Help us improve our documentation and platform. We welcome contributions from the community!
 
 ## Welcome Contributors!
 

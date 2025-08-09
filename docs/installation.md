@@ -1,19 +1,13 @@
 ---
-layout: default
-title: Installation
-nav_order: 2
+layout: single
+title: "Installation Guide"
+permalink: /installation/
+toc: true
+toc_label: "On this page"
+toc_icon: "cog"
+toc_sticky: true
 ---
 
-# Installation Guide
-{: .no_toc }
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
----
 
 ## Requirements
 

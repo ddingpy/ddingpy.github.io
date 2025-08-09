@@ -28,45 +28,72 @@ url: "https://yourusername.github.io" # your GitHub Pages URL
 repository: "yourusername/yourrepository"
 
 # Build settings
-remote_theme: "pmarsceill/just-the-docs@v0.3.3"
+remote_theme: "mmistakes/minimal-mistakes@4.24.0"
 plugins:
   - jekyll-feed
   - jekyll-remote-theme
   - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-paginate
+  - jekyll-include-cache
 
-# Just the Docs theme configuration
-color_scheme: light
-search_enabled: true
-search:
-  heading_level: 2
-  previews: 3
-  preview_words_before: 5
-  preview_words_after: 10
-  tokenizer_separator: /[\s/]+/
-  rel_url: true
-  button: false
+# Minimal Mistakes theme settings
+minimal_mistakes_skin: "default" # "air", "aqua", "contrast", "dark", "dirt", "neon", "mint", "plum", "sunrise"
+locale: "en-US"
+title_separator: "-"
+subtitle: "Your comprehensive documentation resource"
+name: "Documentation Team"
+masthead_title: "Docs Portal"
+breadcrumbs: true
 
-# Aux links for the upper right navigation
-aux_links:
-  "GitHub":
-    - "//github.com/yourusername/yourrepository"
+# Site Author
+author:
+  name: "Documentation Team"
+  avatar: # path of avatar image
+  bio: "Helping you succeed with our platform"
+  location: "Worldwide"
+  email: "docs@example.com"
+  links:
+    - label: "Email"
+      icon: "fas fa-fw fa-envelope-square"
+      url: "mailto:docs@example.com"
+    - label: "Website"
+      icon: "fas fa-fw fa-link"
+      url: "https://example.com"
+    - label: "GitHub"
+      icon: "fab fa-fw fa-github"
+      url: "https://github.com/yourusername"
 
-# Makes Aux links open in a new tab
-aux_links_new_tab: true
+# Site Footer
+footer:
+  links:
+    - label: "GitHub"
+      icon: "fab fa-fw fa-github"
+      url: "https://github.com/yourusername/yourrepository"
+    - label: "Twitter"
+      icon: "fab fa-fw fa-twitter-square"
+      url: "https://twitter.com/yourusername"
 
-# Footer content
-footer_content: "Copyright &copy; 2025. Distributed by an <a href=\"https://github.com/pmarsceill/just-the-docs/tree/master/LICENSE.txt\">MIT license.</a>"
+# Search
+search: true
+search_full_content: true
+search_provider: lunr
 
-# Footer last edited timestamp
-last_edit_timestamp: true
-last_edit_time_format: "%b %e %Y at %I:%M %p"
+# Analytics
+analytics:
+  provider: false # false (default), "google", "google-universal", "google-gtag", "custom"
 
-# Footer "Edit this page on GitHub" link text
-gh_edit_link: true
-gh_edit_link_text: "Edit this page on GitHub"
-gh_edit_repository: "https://github.com/yourusername/yourrepository"
-gh_edit_branch: "main"
-gh_edit_view_mode: "tree"
+# Defaults
+defaults:
+  # _pages
+  - scope:
+      path: ""
+      type: pages
+    values:
+      layout: single
+      author_profile: false
+      sidebar:
+        nav: "docs"
 
 # Exclude from processing.
 # The following items will not be processed, by default.
@@ -76,7 +103,8 @@ gh_edit_view_mode: "tree"
 # Excluded items can be processed by explicitly listing the directories or
 # their entries' file path in the `include:` list.
 #
-# exclude:
+exclude:
+  - CLAUDE.md
 #   - .sass-cache/
 #   - .jekyll-cache/
 #   - gemfiles/

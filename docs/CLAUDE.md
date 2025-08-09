@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is a Jekyll-based documentation site configured for GitHub Pages using the "Just the Docs" remote theme. The site is optimized for documentation with built-in search, responsive design, and clean navigation.
+This is a Jekyll-based documentation site configured for GitHub Pages using the "Minimal Mistakes" remote theme. The site features a modern, responsive design optimized for documentation with built-in search, multiple layout options, and extensive customization capabilities.
 
 ## Key Commands
 
@@ -34,14 +34,16 @@ bundle update jekyll
 
 ## Project Structure
 
-- `_config.yml` - Main Jekyll configuration with Just the Docs theme settings
+- `_config.yml` - Main Jekyll configuration with Minimal Mistakes theme settings
+- `_data/navigation.yml` - Navigation menu configuration
 - `_site/` - Generated static site (excluded from git)
-- `index.md` - Homepage documentation
-- `installation.md` - Installation guide
-- `quickstart.md` - Quick start tutorial
-- `api.md` - API reference documentation
-- `faq.md` - Frequently asked questions
+- `index.md` - Homepage with splash layout
+- `installation.md` - Installation guide with single layout
+- `quickstart.md` - Quick start tutorial with TOC
+- `api.md` - API reference documentation with wide layout
+- `faq.md` - Frequently asked questions with sticky TOC
 - `contributing.md` - Contributing guidelines
+- `404.html` - Custom 404 error page
 
 ## Content Management
 
@@ -50,35 +52,42 @@ All documentation pages should be in Markdown (.md) format with appropriate fron
 
 ```yaml
 ---
-layout: default
+layout: single  # or splash, archive, etc.
 title: "Page Title"
-nav_order: 1
-description: "Page description for SEO"
 permalink: /section/
+toc: true
+toc_label: "Contents"
+toc_icon: "cog"
+toc_sticky: true
 ---
 ```
 
+### Available Layouts
+- `single` - Standard documentation page with sidebar
+- `splash` - Landing page with feature rows
+- `archive` - Collection/list pages
+- `wide` - Full-width content (use with `classes: wide`)
+
 ### Navigation
-- `nav_order` - Controls the order in sidebar navigation
-- `has_children: true` - Creates a parent section
-- `parent: "Parent Title"` - Nests page under a parent
+Configure navigation in `_data/navigation.yml`:
+- `main` - Top navigation bar
+- `docs` - Sidebar navigation (set in page defaults)
 
 ### Markdown Features
-- Tables with `{: .table-wrapper}`
-- Code blocks with syntax highlighting
-- Table of contents with `{:toc}`
-- Buttons with `{: .btn .btn-primary}`
-- Labels with `{: .label .label-green}`
+- Notices: `{: .notice}`, `{: .notice--info}`, `{: .notice--warning}`
+- Buttons: `{: .btn .btn--primary}`, `{: .btn--success}`
+- Image alignment: `{: .align-left}`, `{: .align-right}`
+- Table of contents: Set `toc: true` in front matter
 
 ## GitHub Pages Configuration
 
 The site is configured for GitHub Pages with:
 - `github-pages` gem version ~> 232
-- `remote_theme: "pmarsceill/just-the-docs@v0.3.3"` - Documentation theme
-- `baseurl: "/docs"` - For GitHub Pages subpath
-- Jekyll Feed plugin for RSS generation
-- Jekyll SEO plugin for meta tags
-- Full-text search functionality
+- `remote_theme: "mmistakes/minimal-mistakes@4.24.0"` - Minimal Mistakes theme
+- Multiple Jekyll plugins (feed, sitemap, SEO tags, paginate)
+- Lunr.js search functionality
+- Responsive design with multiple breakpoints
+- Font Awesome icons support
 
 ## Important Notes
 

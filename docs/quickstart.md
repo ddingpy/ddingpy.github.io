@@ -1,22 +1,16 @@
 ---
-layout: default
-title: Quick Start
-nav_order: 3
+layout: single
+title: "Quick Start Guide"
+permalink: /quickstart/
+toc: true
+toc_label: "Quick Start"
+toc_icon: "rocket"
+toc_sticky: true
+header:
+  teaser: https://via.placeholder.com/600x400
 ---
 
-# Quick Start Guide
-{: .no_toc }
-
-Get up and running in 5 minutes
-{: .fs-6 .fw-300 }
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
----
+Get up and running in just 5 minutes with our step-by-step quick start guide.
 
 ## Overview
 
@@ -35,8 +29,8 @@ First, install our tool using npm:
 npm install -g our-tool
 ```
 
-{: .note }
-> **Note:** Requires Node.js 14.0 or higher. See [Installation Guide](../installation/) for other methods.
+**Note:** Requires Node.js 14.0 or higher. See [Installation Guide](/installation/) for other methods.
+{: .notice--info}
 
 ## Step 2: Initialize
 

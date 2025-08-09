@@ -1,0 +1,54 @@
+# main links
+main:
+  - title: "Quick Start"
+    url: /quickstart/
+  - title: "Installation"
+    url: /installation/
+  - title: "API"
+    url: /api/
+  - title: "FAQ"
+    url: /faq/
+  - title: "GitHub"
+    url: https://github.com/yourusername/yourrepository
+
+# documentation sidebar
+docs:
+  - title: Getting Started
+    children:
+      - title: "Quick Start Guide"
+        url: /quickstart/
+      - title: "Installation"
+        url: /installation/
+      - title: "Configuration"
+        url: /configuration/
+
+  - title: User Guide
+    children:
+      - title: "Basic Usage"
+        url: /guide/basic/
+      - title: "Advanced Features"
+        url: /guide/advanced/
+      - title: "Best Practices"
+        url: /guide/best-practices/
+
+  - title: API Documentation
+    children:
+      - title: "API Overview"
+        url: /api/
+      - title: "Authentication"
+        url: /api/auth/
+      - title: "Endpoints"
+        url: /api/endpoints/
+      - title: "Examples"
+        url: /api/examples/
+
+  - title: Resources
+    children:
+      - title: "FAQ"
+        url: /faq/
+      - title: "Troubleshooting"
+        url: /troubleshooting/
+      - title: "Contributing"
+        url: /contributing/
+      - title: "Changelog"
+        url: /changelog/
