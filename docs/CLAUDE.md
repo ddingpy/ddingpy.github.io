@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is a Jekyll-based documentation site configured for GitHub Pages. The site uses the Minima theme and is set up to work with GitHub Pages gem version 232.
+This is a Jekyll-based documentation site configured for GitHub Pages using the "Just the Docs" remote theme. The site is optimized for documentation with built-in search, responsive design, and clean navigation.
 
 ## Key Commands
 
@@ -34,43 +34,51 @@ bundle update jekyll
 
 ## Project Structure
 
-- `_config.yml` - Main Jekyll configuration
-- `_posts/` - Blog posts in YYYY-MM-DD-title.markdown format
+- `_config.yml` - Main Jekyll configuration with Just the Docs theme settings
 - `_site/` - Generated static site (excluded from git)
-- `index.markdown` - Homepage with `layout: home`
-- `about.markdown` - About page example
+- `index.md` - Homepage documentation
+- `installation.md` - Installation guide
+- `quickstart.md` - Quick start tutorial
+- `api.md` - API reference documentation
+- `faq.md` - Frequently asked questions
+- `contributing.md` - Contributing guidelines
 
 ## Content Management
 
-### Creating Posts
-Posts must be placed in `_posts/` with filename format: `YYYY-MM-DD-title.markdown`
+### Creating Documentation Pages
+All documentation pages should be in Markdown (.md) format with appropriate front matter:
 
-Required front matter:
 ```yaml
 ---
-layout: post
-title: "Post Title"
-date: YYYY-MM-DD HH:MM:SS +TIMEZONE
-categories: category1 category2
----
-```
-
-### Creating Pages
-Pages can be created in the root directory with front matter:
-```yaml
----
-layout: page
+layout: default
 title: "Page Title"
-permalink: /custom-url/
+nav_order: 1
+description: "Page description for SEO"
+permalink: /section/
 ---
 ```
+
+### Navigation
+- `nav_order` - Controls the order in sidebar navigation
+- `has_children: true` - Creates a parent section
+- `parent: "Parent Title"` - Nests page under a parent
+
+### Markdown Features
+- Tables with `{: .table-wrapper}`
+- Code blocks with syntax highlighting
+- Table of contents with `{:toc}`
+- Buttons with `{: .btn .btn-primary}`
+- Labels with `{: .label .label-green}`
 
 ## GitHub Pages Configuration
 
 The site is configured for GitHub Pages with:
 - `github-pages` gem version ~> 232
-- Minima theme version ~> 2.5
+- `remote_theme: "pmarsceill/just-the-docs@v0.3.3"` - Documentation theme
+- `baseurl: "/docs"` - For GitHub Pages subpath
 - Jekyll Feed plugin for RSS generation
+- Jekyll SEO plugin for meta tags
+- Full-text search functionality
 
 ## Important Notes
 
