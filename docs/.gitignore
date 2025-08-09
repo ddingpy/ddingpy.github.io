@@ -6,3 +6,4 @@ vendor
 
 Gemfile.lock
 /.idea/
+/.claude/settings.local.json
