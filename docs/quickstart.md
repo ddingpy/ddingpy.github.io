@@ -2,10 +2,11 @@
 layout: single
 title: "Quick Start Guide"
 permalink: /quickstart/
-toc: true
-toc_label: "Quick Start"
-toc_icon: "rocket"
-toc_sticky: true
+classes: wide
+#toc: true
+#toc_label: "Quick Start"
+#toc_icon: "rocket"
+#toc_sticky: true
 header:
   teaser: https://via.placeholder.com/600x400
 ---

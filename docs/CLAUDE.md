@@ -36,13 +36,14 @@ bundle update jekyll
 
 - `_config.yml` - Main Jekyll configuration with Minimal Mistakes theme settings
 - `_data/navigation.yml` - Navigation menu configuration
+- `assets/css/main.scss` - Custom CSS for full-width layout
 - `_site/` - Generated static site (excluded from git)
-- `index.md` - Homepage with splash layout
-- `installation.md` - Installation guide with single layout
-- `quickstart.md` - Quick start tutorial with TOC
-- `api.md` - API reference documentation with wide layout
-- `faq.md` - Frequently asked questions with sticky TOC
-- `contributing.md` - Contributing guidelines
+- `index.md` - Homepage with splash layout (full width)
+- `installation.md` - Installation guide (full width)
+- `quickstart.md` - Quick start tutorial with TOC (full width)
+- `api.md` - API reference documentation (full width)
+- `faq.md` - Frequently asked questions with sticky TOC (full width)
+- `contributing.md` - Contributing guidelines (full width)
 - `404.html` - Custom 404 error page
 
 ## Content Management

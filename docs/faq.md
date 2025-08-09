@@ -2,6 +2,7 @@
 layout: single
 title: "Frequently Asked Questions"
 permalink: /faq/
+classes: wide
 toc: true
 toc_label: "FAQ Topics"
 toc_icon: "question-circle"

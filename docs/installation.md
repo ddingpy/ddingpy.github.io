@@ -2,6 +2,7 @@
 layout: single
 title: "Installation Guide"
 permalink: /installation/
+classes: wide
 toc: true
 toc_label: "On this page"
 toc_icon: "cog"

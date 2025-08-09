@@ -2,6 +2,7 @@
 layout: single
 title: "Contributing Guide"
 permalink: /contributing/
+classes: wide
 toc: true
 toc_label: "How to Contribute"
 toc_icon: "hands-helping"
