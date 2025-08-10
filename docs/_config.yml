@@ -28,15 +28,17 @@ url: "https://yourusername.github.io" # your GitHub Pages URL
 repository: "yourusername/yourrepository"
 
 # Build settings
-remote_theme: "pmarsceill/just-the-docs@v0.3.3"
+remote_theme: "pmarsceill/just-the-docs@v0.10.1"
 plugins:
   - jekyll-feed
   - jekyll-remote-theme
   - jekyll-seo-tag
 
 # Just the Docs theme configuration
+# https://just-the-docs.com/docs/configuration/
 color_scheme: light
 search_enabled: true
+nav_enabled: true
 search:
   heading_level: 2
   previews: 3
