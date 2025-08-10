@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 10: Validation and Exception Handling
 
 Building robust applications requires more than just functional code—it demands comprehensive validation and exceptional exception handling. In this chapter, we'll explore how to implement effective validation strategies using Kotlin with Spring Boot and Hibernate Validator. We'll cover everything from basic bean validation to sophisticated custom validators, and we'll dive deep into creating a robust exception handling framework that provides meaningful feedback to API consumers.

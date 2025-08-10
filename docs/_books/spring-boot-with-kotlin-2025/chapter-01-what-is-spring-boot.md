@@ -1,5 +1,5 @@
 ---
-title: Chapter 01
+layout: default
 ---
 # Chapter 01: What is Spring Boot?
 

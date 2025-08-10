@@ -1,9 +1,5 @@
 ---
 layout: default
-title: Chapter 02
-date: 2024-08-11
-description: hello
-nav_order: 2
 ---
 
 # Chapter 02: Foundational Knowledge Before Development

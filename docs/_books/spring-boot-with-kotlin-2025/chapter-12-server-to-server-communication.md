@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 12: Server-to-Server Communication
 
 Modern applications rarely operate in isolation. They need to communicate with external APIs, microservices, payment processors, notification services, and countless other systems. In this chapter, we'll explore the various approaches Spring Boot provides for server-to-server communication and how to implement them effectively in Kotlin.

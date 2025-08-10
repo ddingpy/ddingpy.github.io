@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 11: Using Actuator
 
 Spring Boot Actuator is one of the most valuable features of the Spring Boot ecosystem, providing production-ready monitoring, metrics, and operational insights out of the box. In this chapter, we'll explore how to effectively use Actuator in Kotlin-based Spring Boot applications to gain deep visibility into your application's health, performance, and behavior.

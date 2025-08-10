@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 04: Developing a Spring Boot Application
 
 It's time to write code! In this chapter, we'll create our first Spring Boot application with Kotlin, explore the project structure, understand build configuration, and get our "Hello World" running. By the end, you'll have a solid foundation for building real applications.

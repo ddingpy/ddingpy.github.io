@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 07: Writing Test Code
 
 Testing is crucial for building reliable Spring Boot applications. In this chapter, we'll explore comprehensive testing strategies using modern Kotlin testing frameworks. You'll learn about unit testing, integration testing, test patterns, and how to use Kotest, MockK, and other tools to create maintainable test suites. We'll also cover test-driven development practices and code coverage analysis.

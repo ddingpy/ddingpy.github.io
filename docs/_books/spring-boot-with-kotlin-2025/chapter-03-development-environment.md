@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 03: Setting Up the Development Environment
 
 Getting your development environment right from the start will save you countless hours of frustration. In this chapter, we'll walk through setting up a professional Kotlin and Spring Boot development environment that will serve you well throughout your journey.

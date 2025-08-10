@@ -64,7 +64,7 @@ just_the_docs:
       name: Books
       # Exclude the collection from the navigation
       # Supports true or false (default)
-      nav_exclude: false
+      nav_exclude: true
       # Fold the collection in the navigation
       # Supports true or false (default)
       # nav_fold: true  # note: this option is new in v0.4

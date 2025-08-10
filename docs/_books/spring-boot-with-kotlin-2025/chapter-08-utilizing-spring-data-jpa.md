@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 08: Utilizing Spring Data JPA
 
 Spring Data JPA is a powerful abstraction layer that simplifies database access while providing sophisticated query capabilities. In this chapter, we'll explore advanced features that go beyond basic CRUD operations, helping you leverage the full power of Spring Data JPA with Kotlin.

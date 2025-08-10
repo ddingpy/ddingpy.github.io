@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 06: Database Integration
 
 In this chapter, we'll explore how to integrate Spring Boot applications with PostgreSQL using Kotlin. We'll cover the challenges of using Kotlin with JPA/Hibernate and provide practical solutions. You'll learn how to set up database connections, design entities, implement repositories, and integrate with your service layer while maintaining type safety and leveraging Kotlin's unique features.

@@ -1,3 +1,7 @@
+---
+layout: default
+title: Z - Appendix A Kotlin Tips
+---
 # Appendix A: Kotlin Tips for Spring Boot Developers
 
 This appendix serves as a practical guide for Java developers transitioning to Kotlin with Spring Boot, as well as a reference for Kotlin developers looking to leverage Spring Boot more effectively. Throughout the book, we've explored comprehensive Spring Boot development with Kotlin. Here, we consolidate the most important Kotlin-specific patterns, best practices, and common migration challenges you'll encounter.

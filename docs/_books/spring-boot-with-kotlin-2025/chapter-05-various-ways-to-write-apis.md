@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 05: Various Ways to Write APIs
 
 In this chapter, we'll explore the different approaches to building REST APIs with Spring Boot and Kotlin. We'll cover everything from basic controller setup to advanced documentation and logging strategies. By the end of this chapter, you'll understand how to create robust, well-documented APIs that follow modern best practices.

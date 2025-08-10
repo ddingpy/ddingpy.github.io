@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 09: Relationship Mapping
 
 Modeling relationships between entities is one of the most critical aspects of building a data-driven application. Get it right, and your application will be performant and maintainable. Get it wrong, and you'll face the dreaded N+1 problem, lazy loading exceptions, and performance nightmares. In this chapter, we'll explore how to properly map relationships in JPA with Kotlin, understanding the trade-offs and best practices for each approach.

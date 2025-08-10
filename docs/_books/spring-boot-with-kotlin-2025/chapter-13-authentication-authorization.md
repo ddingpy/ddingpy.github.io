@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Chapter 13: Service Authentication and Authorization
 
 Security is not an afterthought in modern application development—it's a fundamental requirement from day one. In this comprehensive chapter, we'll explore how to implement robust authentication and authorization in Kotlin Spring Boot applications using Spring Security, JWT tokens, and modern security patterns.
