@@ -23,7 +23,7 @@ email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
   Comprehensive documentation and guides for our platform.
   Everything you need to get started and master our tools.
-baseurl: "" # the subpath of your site for GitHub Pages
+baseurl: "/m" # the subpath of your site for GitHub Pages
 url: "https://yourusername.github.io" # your GitHub Pages URL
 repository: "yourusername/yourrepository"
 
