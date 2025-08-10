@@ -1,7 +1,11 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
 # Chapter 08: Utilizing Spring Data JPA
+- TOC
+{:toc}
 
 Spring Data JPA is a powerful abstraction layer that simplifies database access while providing sophisticated query capabilities. In this chapter, we'll explore advanced features that go beyond basic CRUD operations, helping you leverage the full power of Spring Data JPA with Kotlin.
 
@@ -19,19 +23,19 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    
+
     // Kotlin support
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    
+
     // Database
     implementation("org.postgresql:postgresql")
     implementation("org.flywaydb:flyway-core")
-    
+
     // Querydsl
     implementation("com.querydsl:querydsl-jpa:5.0.0:jakarta")
     kapt("com.querydsl:querydsl-apt:5.0.0:jakarta")
-    
+
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:postgresql:1.19.3")
@@ -60,53 +64,53 @@ class Book(
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "book_seq")
     @SequenceGenerator(name = "book_seq", sequenceName = "book_sequence", allocationSize = 1)
     var id: Long? = null,
-    
+
     @Column(nullable = false, unique = true)
     var isbn: String,
-    
+
     @Column(nullable = false)
     var title: String,
-    
+
     @Column(length = 2000)
     var description: String? = null,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
     var author: Author,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "publisher_id")
     var publisher: Publisher? = null,
-    
+
     @Column(nullable = false)
     var publicationDate: LocalDate,
-    
+
     @Column(nullable = false, precision = 10, scale = 2)
     var price: BigDecimal,
-    
+
     @Column(nullable = false)
     var stockQuantity: Int = 0,
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var status: BookStatus = BookStatus.AVAILABLE,
-    
+
     @ElementCollection
     @CollectionTable(name = "book_categories", joinColumns = [JoinColumn(name = "book_id")])
     @Column(name = "category")
     var categories: MutableSet<String> = mutableSetOf(),
-    
+
     @OneToMany(mappedBy = "book", cascade = [CascadeType.ALL], orphanRemoval = true)
     var reviews: MutableList<Review> = mutableListOf(),
-    
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     var createdAt: Instant? = null,
-    
+
     @UpdateTimestamp
     @Column(nullable = false)
     var updatedAt: Instant? = null,
-    
+
     @Version
     var version: Long? = null
 ) {
@@ -114,12 +118,12 @@ class Book(
         reviews.add(review)
         review.book = this
     }
-    
+
     fun removeReview(review: Review) {
         reviews.remove(review)
         review.book = null
     }
-    
+
     fun getAverageRating(): Double {
         return if (reviews.isEmpty()) 0.0
         else reviews.map { it.rating }.average()
@@ -132,19 +136,19 @@ class Author(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var firstName: String,
-    
+
     @Column(nullable = false)
     var lastName: String,
-    
+
     @Column(unique = true)
     var email: String? = null,
-    
+
     @Column(length = 1000)
     var biography: String? = null,
-    
+
     @OneToMany(mappedBy = "author", fetch = FetchType.LAZY)
     var books: MutableList<Book> = mutableListOf()
 ) {
@@ -158,13 +162,13 @@ class Publisher(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false, unique = true)
     var name: String,
-    
+
     @Column(nullable = false)
     var country: String,
-    
+
     @OneToMany(mappedBy = "publisher", fetch = FetchType.LAZY)
     var books: MutableList<Book> = mutableListOf()
 )
@@ -175,20 +179,20 @@ class Review(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id")
     var book: Book? = null,
-    
+
     @Column(nullable = false)
     var reviewerName: String,
-    
+
     @Column(nullable = false)
     var rating: Int,
-    
+
     @Column(length = 2000)
     var comment: String? = null,
-    
+
     @CreationTimestamp
     @Column(nullable = false)
     var reviewDate: Instant? = null
@@ -220,25 +224,25 @@ import java.math.BigDecimal
 import java.time.LocalDate
 
 interface BookRepository : JpaRepository<Book, Long> {
-    
+
     // Simple JPQL query
     @Query("SELECT b FROM Book b WHERE b.title = :title")
     fun findByTitleJpql(@Param("title") title: String): List<Book>
-    
+
     // JPQL with JOIN FETCH to avoid N+1 problem
     @Query("""
-        SELECT DISTINCT b FROM Book b 
-        LEFT JOIN FETCH b.author 
-        LEFT JOIN FETCH b.publisher 
+        SELECT DISTINCT b FROM Book b
+        LEFT JOIN FETCH b.author
+        LEFT JOIN FETCH b.publisher
         WHERE b.status = :status
     """)
     fun findByStatusWithAuthorAndPublisher(@Param("status") status: BookStatus): List<Book>
-    
+
     // JPQL with complex conditions
     @Query("""
-        SELECT b FROM Book b 
-        WHERE b.price BETWEEN :minPrice AND :maxPrice 
-        AND b.publicationDate >= :fromDate 
+        SELECT b FROM Book b
+        WHERE b.price BETWEEN :minPrice AND :maxPrice
+        AND b.publicationDate >= :fromDate
         AND b.stockQuantity > 0
         ORDER BY b.price ASC
     """)
@@ -247,26 +251,26 @@ interface BookRepository : JpaRepository<Book, Long> {
         @Param("maxPrice") maxPrice: BigDecimal,
         @Param("fromDate") fromDate: LocalDate
     ): List<Book>
-    
+
     // JPQL with aggregation
     @Query("""
-        SELECT b.author.id, COUNT(b), AVG(b.price) 
-        FROM Book b 
-        GROUP BY b.author.id 
+        SELECT b.author.id, COUNT(b), AVG(b.price)
+        FROM Book b
+        GROUP BY b.author.id
         HAVING COUNT(b) > :minBooks
     """)
     fun findAuthorStatistics(@Param("minBooks") minBooks: Long): List<Array<Any>>
-    
+
     // JPQL with subquery
     @Query("""
-        SELECT b FROM Book b 
+        SELECT b FROM Book b
         WHERE b.price > (
-            SELECT AVG(b2.price) FROM Book b2 
+            SELECT AVG(b2.price) FROM Book b2
             WHERE b2.author = b.author
         )
     """)
     fun findBooksAboveAuthorAveragePrice(): List<Book>
-    
+
     // JPQL with constructor expression (DTO projection)
     @Query("""
         SELECT NEW com.example.bookstore.dto.BookSummary(
@@ -276,11 +280,11 @@ interface BookRepository : JpaRepository<Book, Long> {
         WHERE b.status = :status
     """)
     fun findBookSummariesByStatus(@Param("status") status: BookStatus): List<BookSummary>
-    
+
     // JPQL with CASE expression
     @Query("""
         SELECT b.title,
-            CASE 
+            CASE
                 WHEN b.price < 20 THEN 'Budget'
                 WHEN b.price < 50 THEN 'Standard'
                 ELSE 'Premium'
@@ -288,14 +292,14 @@ interface BookRepository : JpaRepository<Book, Long> {
         FROM Book b
     """)
     fun categorizeBooksByPrice(): List<Array<Any>>
-    
+
     // JPQL with collection operations
     @Query("""
-        SELECT b FROM Book b 
+        SELECT b FROM Book b
         WHERE :category MEMBER OF b.categories
     """)
     fun findBooksInCategory(@Param("category") category: String): List<Book>
-    
+
     // JPQL with IS EMPTY check
     @Query("SELECT b FROM Book b WHERE b.reviews IS EMPTY")
     fun findBooksWithoutReviews(): List<Book>
@@ -315,41 +319,41 @@ data class BookSummary(
 
 ```kotlin
 interface AdvancedBookRepository : JpaRepository<Book, Long> {
-    
+
     // Using TRIM, UPPER, LOWER functions
     @Query("""
-        SELECT b FROM Book b 
+        SELECT b FROM Book b
         WHERE UPPER(TRIM(b.title)) LIKE UPPER(CONCAT('%', :keyword, '%'))
     """)
     fun searchBooksIgnoreCase(@Param("keyword") keyword: String): List<Book>
-    
+
     // Using temporal functions
     @Query("""
-        SELECT b FROM Book b 
-        WHERE YEAR(b.publicationDate) = :year 
+        SELECT b FROM Book b
+        WHERE YEAR(b.publicationDate) = :year
         AND MONTH(b.publicationDate) = :month
     """)
     fun findBooksPublishedInMonth(
         @Param("year") year: Int,
         @Param("month") month: Int
     ): List<Book>
-    
+
     // Using EXISTS
     @Query("""
-        SELECT a FROM Author a 
+        SELECT a FROM Author a
         WHERE EXISTS (
-            SELECT b FROM Book b 
-            WHERE b.author = a 
+            SELECT b FROM Book b
+            WHERE b.author = a
             AND b.price > :minPrice
         )
     """)
     fun findAuthorsWithExpensiveBooks(@Param("minPrice") minPrice: BigDecimal): List<Author>
-    
+
     // Using ALL, ANY, SOME
     @Query("""
-        SELECT b FROM Book b 
+        SELECT b FROM Book b
         WHERE b.price < ALL (
-            SELECT b2.price FROM Book b2 
+            SELECT b2.price FROM Book b2
             WHERE b2.author.id = :authorId
         )
     """)
@@ -365,7 +369,7 @@ Spring Data JPA's query methods allow you to define queries by simply declaring 
 
 ```kotlin
 interface BookQueryMethodRepository : JpaRepository<Book, Long> {
-    
+
     // Simple property expressions
     fun findByTitle(title: String): List<Book>
     fun findByIsbn(isbn: String): Book?
@@ -373,42 +377,42 @@ interface BookQueryMethodRepository : JpaRepository<Book, Long> {
     fun findByTitleStartingWith(prefix: String): List<Book>
     fun findByPriceLessThan(price: BigDecimal): List<Book>
     fun findByPriceBetween(minPrice: BigDecimal, maxPrice: BigDecimal): List<Book>
-    
+
     // Multiple properties with logical operators
     fun findByTitleAndAuthorLastName(title: String, lastName: String): List<Book>
     fun findByTitleOrIsbn(title: String, isbn: String): List<Book>
     fun findByStatusAndPriceLessThan(status: BookStatus, price: BigDecimal): List<Book>
-    
+
     // Nested properties
     fun findByAuthorFirstName(firstName: String): List<Book>
     fun findByAuthorEmailIsNull(): List<Book>
     fun findByPublisherCountry(country: String): List<Book>
-    
+
     // Collection operations
     fun findByCategoriesContaining(category: String): List<Book>
     fun findByReviewsIsEmpty(): List<Book>
     fun findByReviewsIsNotEmpty(): List<Book>
-    
+
     // Date comparisons
     fun findByPublicationDateBefore(date: LocalDate): List<Book>
     fun findByPublicationDateAfter(date: LocalDate): List<Book>
     fun findByCreatedAtBetween(start: Instant, end: Instant): List<Book>
-    
+
     // Ordering
     fun findByStatusOrderByPriceAsc(status: BookStatus): List<Book>
     fun findByAuthorIdOrderByPublicationDateDesc(authorId: Long): List<Book>
-    
+
     // Limiting results
     fun findTop3ByOrderByPriceDesc(): List<Book>
     fun findFirst5ByStatusOrderByCreatedAtDesc(status: BookStatus): List<Book>
-    
+
     // Distinct
     fun findDistinctByAuthorLastName(lastName: String): List<Book>
-    
+
     // Counting and existence
     fun countByStatus(status: BookStatus): Long
     fun existsByIsbn(isbn: String): Boolean
-    
+
     // Delete operations
     fun deleteByStatus(status: BookStatus): Long
     fun removeByPublicationDateBefore(date: LocalDate): List<Book>
@@ -419,27 +423,27 @@ interface BookQueryMethodRepository : JpaRepository<Book, Long> {
 
 ```kotlin
 interface AdvancedQueryMethodRepository : JpaRepository<Book, Long> {
-    
+
     // Using Optional for null safety
     fun findOptionalByIsbn(isbn: String): Optional<Book>
-    
+
     // Returning Stream for large datasets
     @Query("SELECT b FROM Book b")
     fun streamAllBooks(): Stream<Book>
-    
+
     // Async queries with CompletableFuture
     @Async
     fun findByTitleContainingAsync(keyword: String): CompletableFuture<List<Book>>
-    
+
     // Using Slice for pagination without count query
     fun findByStatus(status: BookStatus, pageable: Pageable): Slice<Book>
-    
+
     // Custom return types with projections
     fun findByStatusAndPriceLessThan(
         status: BookStatus,
         price: BigDecimal
     ): List<BookProjection>
-    
+
     // Dynamic projections
     fun <T> findByIsbn(isbn: String, type: Class<T>): T?
 }
@@ -449,7 +453,7 @@ interface BookProjection {
     fun getTitle(): String
     fun getIsbn(): String
     fun getAuthor(): AuthorProjection
-    
+
     interface AuthorProjection {
         fun getFirstName(): String
         fun getLastName(): String
@@ -460,7 +464,7 @@ interface BookProjection {
 interface BookWithRating {
     fun getTitle(): String
     fun getReviews(): List<Review>
-    
+
     @Value("#{target.reviews.size() > 0 ? target.reviews.stream().mapToInt(r -> r.rating).average().orElse(0.0) : 0.0}")
     fun getAverageRating(): Double
 }
@@ -478,7 +482,7 @@ Sorting and pagination are essential for handling large datasets efficiently.
 class BookController(
     private val bookRepository: BookRepository
 ) {
-    
+
     // Simple pagination
     @GetMapping
     fun getAllBooks(
@@ -488,7 +492,7 @@ class BookController(
         val pageable = PageRequest.of(page, size)
         return bookRepository.findAll(pageable)
     }
-    
+
     // Pagination with sorting
     @GetMapping("/sorted")
     fun getBooksSorted(
@@ -500,7 +504,7 @@ class BookController(
         val pageable = PageRequest.of(page, size, Sort.by(direction, sortBy))
         return bookRepository.findAll(pageable)
     }
-    
+
     // Multiple sort criteria
     @GetMapping("/multi-sorted")
     fun getBooksMultiSorted(
@@ -515,7 +519,7 @@ class BookController(
         val pageable = PageRequest.of(page, size, sort)
         return bookRepository.findAll(pageable)
     }
-    
+
     // Dynamic sorting with type safety
     @GetMapping("/dynamic-sorted")
     fun getBooksDynamicSorted(
@@ -534,11 +538,11 @@ class BookController(
 class BookPaginationService(
     private val bookRepository: BookRepository
 ) {
-    
+
     // Custom page response with metadata
     fun getPagedBooks(pageable: Pageable): PagedResponse<BookDTO> {
         val page = bookRepository.findAll(pageable)
-        
+
         return PagedResponse(
             content = page.content.map { it.toDTO() },
             pageNumber = page.number,
@@ -551,11 +555,11 @@ class BookPaginationService(
             hasPrevious = page.hasPrevious()
         )
     }
-    
+
     // Slice-based pagination (no count query)
     fun getSlicedBooks(pageable: Pageable): SliceResponse<BookDTO> {
         val slice = bookRepository.findSliceBy(pageable)
-        
+
         return SliceResponse(
             content = slice.content.map { it.toDTO() },
             pageNumber = slice.number,
@@ -564,7 +568,7 @@ class BookPaginationService(
             hasPrevious = slice.hasPrevious()
         )
     }
-    
+
     // Cursor-based pagination for better performance
     fun getCursorBasedBooks(
         cursor: Long? = null,
@@ -575,11 +579,11 @@ class BookPaginationService(
         } else {
             bookRepository.findByIdGreaterThanOrderByIdAsc(cursor, PageRequest.of(0, limit + 1))
         }
-        
+
         val hasMore = books.size > limit
         val items = if (hasMore) books.dropLast(1) else books
         val nextCursor = if (hasMore) items.lastOrNull()?.id else null
-        
+
         return CursorResponse(
             items = items.map { it.toDTO() },
             nextCursor = nextCursor,
@@ -624,26 +628,26 @@ The @Query annotation provides flexibility for complex queries while maintaining
 
 ```kotlin
 interface NativeQueryRepository : JpaRepository<Book, Long> {
-    
+
     // Basic native query
     @Query(
         value = "SELECT * FROM books WHERE price < :maxPrice",
         nativeQuery = true
     )
     fun findCheapBooksNative(@Param("maxPrice") maxPrice: BigDecimal): List<Book>
-    
+
     // Native query with complex SQL
     @Query(
         value = """
             WITH book_stats AS (
-                SELECT 
+                SELECT
                     author_id,
                     AVG(price) as avg_price,
                     COUNT(*) as book_count
                 FROM books
                 GROUP BY author_id
             )
-            SELECT b.* 
+            SELECT b.*
             FROM books b
             JOIN book_stats bs ON b.author_id = bs.author_id
             WHERE b.price > bs.avg_price
@@ -652,7 +656,7 @@ interface NativeQueryRepository : JpaRepository<Book, Long> {
         nativeQuery = true
     )
     fun findBooksAboveAuthorAverageWithMinBooks(): List<Book>
-    
+
     // Native query with pagination
     @Query(
         value = """
@@ -667,11 +671,11 @@ interface NativeQueryRepository : JpaRepository<Book, Long> {
         @Param("fromDate") fromDate: LocalDate,
         pageable: Pageable
     ): Page<Book>
-    
+
     // Native query with result mapping
     @Query(
         value = """
-            SELECT 
+            SELECT
                 a.id as author_id,
                 a.first_name || ' ' || a.last_name as author_name,
                 COUNT(b.id) as book_count,
@@ -700,24 +704,24 @@ interface AuthorStats {
 
 ```kotlin
 interface ModifyingQueryRepository : JpaRepository<Book, Long> {
-    
+
     // Update query
     @Modifying
     @Query("UPDATE Book b SET b.status = :status WHERE b.stockQuantity = 0")
     fun updateOutOfStockBooks(@Param("status") status: BookStatus): Int
-    
+
     // Bulk price update
     @Modifying
     @Query("""
-        UPDATE Book b 
-        SET b.price = b.price * :multiplier 
+        UPDATE Book b
+        SET b.price = b.price * :multiplier
         WHERE b.publisher.id = :publisherId
     """)
     fun adjustPricesByPublisher(
         @Param("publisherId") publisherId: Long,
         @Param("multiplier") multiplier: BigDecimal
     ): Int
-    
+
     // Delete query
     @Modifying
     @Query("DELETE FROM Book b WHERE b.status = :status AND b.createdAt < :before")
@@ -725,15 +729,15 @@ interface ModifyingQueryRepository : JpaRepository<Book, Long> {
         @Param("status") status: BookStatus,
         @Param("before") before: Instant
     ): Int
-    
+
     // Native update with returning
     @Modifying
     @Query(
         value = """
-            UPDATE books 
+            UPDATE books
             SET stock_quantity = stock_quantity - :quantity,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = :bookId 
+            WHERE id = :bookId
             AND stock_quantity >= :quantity
             RETURNING stock_quantity
         """,
@@ -751,16 +755,16 @@ interface ModifyingQueryRepository : JpaRepository<Book, Long> {
 class BookInventoryService(
     private val modifyingRepository: ModifyingQueryRepository
 ) {
-    
+
     fun markOutOfStockBooks(): Int {
         return modifyingRepository.updateOutOfStockBooks(BookStatus.OUT_OF_STOCK)
     }
-    
+
     fun applyPublisherDiscount(publisherId: Long, discountPercent: Int): Int {
         val multiplier = BigDecimal.ONE - (BigDecimal(discountPercent) / BigDecimal(100))
         return modifyingRepository.adjustPricesByPublisher(publisherId, multiplier)
     }
-    
+
     @Transactional(isolation = Isolation.READ_COMMITTED)
     fun purchaseBook(bookId: Long, quantity: Int): Boolean {
         val remainingStock = modifyingRepository.decrementStock(bookId, quantity)
@@ -779,15 +783,15 @@ Querydsl provides a type-safe way to construct dynamic queries programmatically.
 // Configuration class for Querydsl
 @Configuration
 class QuerydslConfiguration {
-    
+
     @Bean
     fun querydslJpaPredicateExecutor(): JPAQueryFactory {
         return JPAQueryFactory(entityManager())
     }
-    
+
     @PersistenceContext
     private lateinit var entityManager: EntityManager
-    
+
     private fun entityManager(): EntityManager = entityManager
 }
 ```
@@ -803,7 +807,7 @@ interface BookQuerydslRepository : JpaRepository<Book, Long>, QuerydslPredicateE
 class BookQuerydslCustomRepository(
     private val queryFactory: JPAQueryFactory
 ) {
-    
+
     fun findBooksWithDynamicFilters(
         title: String? = null,
         minPrice: BigDecimal? = null,
@@ -814,53 +818,53 @@ class BookQuerydslCustomRepository(
     ): List<Book> {
         val book = QBook.book
         val author = QAuthor.author
-        
+
         val query = queryFactory
             .selectFrom(book)
             .leftJoin(book.author, author).fetchJoin()
-        
+
         // Dynamic where conditions
         val predicates = mutableListOf<BooleanExpression>()
-        
-        title?.let { 
+
+        title?.let {
             predicates.add(book.title.containsIgnoreCase(it))
         }
-        
+
         minPrice?.let {
             predicates.add(book.price.goe(it))
         }
-        
+
         maxPrice?.let {
             predicates.add(book.price.loe(it))
         }
-        
+
         status?.let {
             predicates.add(book.status.eq(it))
         }
-        
+
         authorName?.let {
             predicates.add(
                 author.firstName.containsIgnoreCase(it)
                     .or(author.lastName.containsIgnoreCase(it))
             )
         }
-        
+
         categories?.let { cats ->
             predicates.add(book.categories.any().`in`(cats))
         }
-        
+
         if (predicates.isNotEmpty()) {
             query.where(*predicates.toTypedArray())
         }
-        
+
         return query.fetch()
     }
-    
+
     // Complex aggregation with Querydsl
     fun getBookStatisticsByAuthor(): List<AuthorBookStats> {
         val book = QBook.book
         val author = QAuthor.author
-        
+
         return queryFactory
             .select(
                 Projections.constructor(
@@ -879,16 +883,16 @@ class BookQuerydslCustomRepository(
             .having(book.count().gt(0))
             .fetch()
     }
-    
+
     // Subquery example
     fun findBooksWithAboveAverageReviews(): List<Book> {
         val book = QBook.book
         val review = QReview.review
-        
+
         val avgRating = JPAExpressions
             .select(review.rating.avg())
             .from(review)
-        
+
         return queryFactory
             .selectFrom(book)
             .where(
@@ -900,16 +904,16 @@ class BookQuerydslCustomRepository(
             )
             .fetch()
     }
-    
+
     // Dynamic sorting
     fun findBooksWithDynamicSort(
         sortField: String,
         sortDirection: Sort.Direction
     ): List<Book> {
         val book = QBook.book
-        
+
         val orderSpecifier = when (sortField) {
-            "title" -> if (sortDirection == Sort.Direction.ASC) 
+            "title" -> if (sortDirection == Sort.Direction.ASC)
                 book.title.asc() else book.title.desc()
             "price" -> if (sortDirection == Sort.Direction.ASC)
                 book.price.asc() else book.price.desc()
@@ -917,7 +921,7 @@ class BookQuerydslCustomRepository(
                 book.publicationDate.asc() else book.publicationDate.desc()
             else -> book.id.asc()
         }
-        
+
         return queryFactory
             .selectFrom(book)
             .orderBy(orderSpecifier)
@@ -946,7 +950,7 @@ JPA Auditing automatically tracks entity changes, recording who made changes and
 @Configuration
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
 class JpaAuditingConfiguration {
-    
+
     @Bean
     fun auditorProvider(): AuditorAware<String> {
         return SpringSecurityAuditorAware()
@@ -958,7 +962,7 @@ class SpringSecurityAuditorAware : AuditorAware<String> {
     override fun getCurrentAuditor(): Optional<String> {
         // In a real application, get from SecurityContext
         return Optional.of("system")
-        
+
         // With Spring Security:
         // return Optional.ofNullable(SecurityContextHolder.getContext())
         //     .map { it.authentication }
@@ -975,19 +979,19 @@ class SpringSecurityAuditorAware : AuditorAware<String> {
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener::class)
 abstract class AuditableEntity {
-    
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     var createdDate: Instant? = null
-    
+
     @LastModifiedDate
     @Column(nullable = false)
     var lastModifiedDate: Instant? = null
-    
+
     @CreatedBy
     @Column(updatable = false)
     var createdBy: String? = null
-    
+
     @LastModifiedBy
     var lastModifiedBy: String? = null
 }
@@ -999,20 +1003,20 @@ class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false, unique = true)
     var orderNumber: String,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     var customer: Customer,
-    
+
     @Enumerated(EnumType.STRING)
     var status: OrderStatus = OrderStatus.PENDING,
-    
+
     @Column(nullable = false)
     var totalAmount: BigDecimal,
-    
+
     @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL])
     var items: MutableList<OrderItem> = mutableListOf()
 ) : AuditableEntity()
@@ -1020,24 +1024,24 @@ class Order(
 // Custom audit listener
 @Component
 class CustomAuditListener {
-    
+
     @PrePersist
     fun prePersist(entity: Any) {
         println("Before persisting: $entity")
-        
+
         if (entity is AuditableEntity) {
             // Custom logic before persisting
             entity.createdDate = Instant.now()
             entity.createdBy = getCurrentUser()
         }
     }
-    
+
     @PostPersist
     fun postPersist(entity: Any) {
         println("After persisting: $entity")
         // Send notifications, update cache, etc.
     }
-    
+
     @PreUpdate
     fun preUpdate(entity: Any) {
         if (entity is AuditableEntity) {
@@ -1045,13 +1049,13 @@ class CustomAuditListener {
             entity.lastModifiedBy = getCurrentUser()
         }
     }
-    
+
     @PreRemove
     fun preRemove(entity: Any) {
         println("Before removing: $entity")
         // Archive data, cascade deletes, etc.
     }
-    
+
     private fun getCurrentUser(): String {
         // Get from security context or return default
         return "system"
@@ -1069,26 +1073,26 @@ class AuditLog(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var entityName: String,
-    
+
     @Column(nullable = false)
     var entityId: String,
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var action: AuditAction,
-    
+
     @Column(columnDefinition = "TEXT")
     var oldValue: String? = null,
-    
+
     @Column(columnDefinition = "TEXT")
     var newValue: String? = null,
-    
+
     @Column(nullable = false)
     var modifiedBy: String,
-    
+
     @Column(nullable = false)
     var modifiedDate: Instant = Instant.now()
 )
@@ -1103,7 +1107,7 @@ class AuditLogService(
     private val auditLogRepository: AuditLogRepository,
     private val objectMapper: ObjectMapper
 ) {
-    
+
     fun logCreate(entity: Any, entityId: String) {
         val auditLog = AuditLog(
             entityName = entity::class.simpleName ?: "Unknown",
@@ -1115,7 +1119,7 @@ class AuditLogService(
         )
         auditLogRepository.save(auditLog)
     }
-    
+
     fun logUpdate(entityName: String, entityId: String, oldValue: Any?, newValue: Any?) {
         val auditLog = AuditLog(
             entityName = entityName,
@@ -1128,7 +1132,7 @@ class AuditLogService(
         )
         auditLogRepository.save(auditLog)
     }
-    
+
     fun logDelete(entity: Any, entityId: String) {
         val auditLog = AuditLog(
             entityName = entity::class.simpleName ?: "Unknown",
@@ -1140,7 +1144,7 @@ class AuditLogService(
         )
         auditLogRepository.save(auditLog)
     }
-    
+
     private fun getCurrentUser(): String = "system" // Get from security context
 }
 ```

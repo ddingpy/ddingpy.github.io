@@ -1,7 +1,12 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
+
 # Chapter 01: What is Spring Boot?
+- TOC
+{:toc}
 
 Welcome to the world of Spring Boot with Kotlin! If you're reading this, you're likely looking to build modern, robust backend applications using one of the most powerful framework combinations available today. In this chapter, we'll explore what makes Spring Boot special and why pairing it with Kotlin creates such a compelling development experience.
 
@@ -20,7 +25,7 @@ class OrderService {
     // We're creating and managing the dependency ourselves
     private val repository = OrderRepository()
     private val emailService = EmailService()
-    
+
     fun processOrder(order: Order) {
         repository.save(order)
         emailService.sendConfirmation(order)
@@ -66,7 +71,7 @@ class PaymentProcessor(
             auditLogger.logRiskyTransaction(customerId, amount)
             return PaymentResult.DECLINED
         }
-        
+
         return paymentGateway.charge(amount, customerId)
     }
 }
@@ -81,11 +86,11 @@ AOP allows us to separate cross-cutting concerns from our business logic. Common
 @Aspect
 @Component
 class PerformanceMonitor {
-    
+
     @Around("@annotation(Monitored)")
     fun measureExecutionTime(joinPoint: ProceedingJoinPoint): Any? {
         val startTime = System.currentTimeMillis()
-        
+
         return try {
             joinPoint.proceed()
         } finally {
@@ -98,7 +103,7 @@ class PerformanceMonitor {
 // Use the aspect with a simple annotation
 @Service
 class CustomerService {
-    
+
     @Monitored
     fun findCustomerById(id: Long): Customer? {
         // Your business logic here - no timing code needed!
@@ -233,7 +238,7 @@ management:
 class DatabaseHealthIndicator(
     private val dataSource: DataSource
 ) : HealthIndicator {
-    
+
     override fun health(): Health {
         return try {
             dataSource.connection.use { connection ->

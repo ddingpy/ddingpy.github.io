@@ -1,7 +1,11 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
 # Chapter 13: Service Authentication and Authorization
+- TOC
+{:toc}
 
 Security is not an afterthought in modern application development—it's a fundamental requirement from day one. In this comprehensive chapter, we'll explore how to implement robust authentication and authorization in Kotlin Spring Boot applications using Spring Security, JWT tokens, and modern security patterns.
 
@@ -30,11 +34,11 @@ data class User(
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val lastLogin: LocalDateTime? = null
 ) : UserDetails {
-    
+
     override fun getAuthorities(): Collection<GrantedAuthority> {
         return authorities.map { SimpleGrantedAuthority("ROLE_${it.name}") }
     }
-    
+
     override fun getPassword(): String = password
     override fun getUsername(): String = username
     override fun isAccountNonExpired(): Boolean = !accountExpired
@@ -74,10 +78,10 @@ data class JwtClaims(
 data class LoginRequest(
     @field:NotBlank(message = "Username is required")
     val username: String,
-    
+
     @field:NotBlank(message = "Password is required")
     val password: String,
-    
+
     val rememberMe: Boolean = false
 )
 
@@ -109,14 +113,14 @@ data class SecurityProperties(
     val cors: CorsProperties = CorsProperties(),
     val session: SessionProperties = SessionProperties()
 ) {
-    
+
     data class JwtProperties(
         val secret: String = "default-secret-change-in-production",
         val accessTokenExpiration: Duration = Duration.ofHours(1),
         val refreshTokenExpiration: Duration = Duration.ofDays(7),
         val issuer: String = "kotlin-spring-boot-app"
     )
-    
+
     data class CorsProperties(
         val allowedOrigins: List<String> = listOf("http://localhost:3000"),
         val allowedMethods: List<String> = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS"),
@@ -124,7 +128,7 @@ data class SecurityProperties(
         val allowCredentials: Boolean = true,
         val maxAge: Long = 3600
     )
-    
+
     data class SessionProperties(
         val timeout: Duration = Duration.ofMinutes(30),
         val maxSessions: Int = 1,
@@ -138,7 +142,7 @@ data class SecurityProperties(
 ```kotlin
 @Configuration
 class PasswordConfiguration {
-    
+
     /**
      * Configure BCrypt password encoder with appropriate strength.
      * Strength 12 provides good security vs. performance balance.
@@ -147,7 +151,7 @@ class PasswordConfiguration {
     fun passwordEncoder(): PasswordEncoder {
         return BCryptPasswordEncoder(12)
     }
-    
+
     /**
      * Password validator for ensuring strong passwords
      */
@@ -159,68 +163,68 @@ class PasswordConfiguration {
 
 @Component
 class PasswordValidator {
-    
+
     private val logger = LoggerFactory.getLogger(PasswordValidator::class.java)
-    
+
     fun validatePassword(password: String, username: String? = null): PasswordValidationResult {
         val errors = mutableListOf<String>()
-        
+
         // Length validation
         if (password.length < 8) {
             errors.add("Password must be at least 8 characters long")
         }
-        
+
         if (password.length > 128) {
             errors.add("Password cannot exceed 128 characters")
         }
-        
+
         // Character class validation
         if (!password.any { it.isUpperCase() }) {
             errors.add("Password must contain at least one uppercase letter")
         }
-        
+
         if (!password.any { it.isLowerCase() }) {
             errors.add("Password must contain at least one lowercase letter")
         }
-        
+
         if (!password.any { it.isDigit() }) {
             errors.add("Password must contain at least one digit")
         }
-        
+
         if (!password.any { !it.isLetterOrDigit() }) {
             errors.add("Password must contain at least one special character")
         }
-        
+
         // Common password validation
         if (isCommonPassword(password)) {
             errors.add("Password is too common. Please choose a more secure password")
         }
-        
+
         // Username similarity check
         username?.let { user ->
-            if (password.lowercase().contains(user.lowercase()) || 
+            if (password.lowercase().contains(user.lowercase()) ||
                 user.lowercase().contains(password.lowercase())) {
                 errors.add("Password cannot be similar to username")
             }
         }
-        
+
         // Sequential characters check
         if (hasSequentialCharacters(password)) {
             errors.add("Password cannot contain sequential characters")
         }
-        
+
         // Repeated characters check
         if (hasExcessiveRepetition(password)) {
             errors.add("Password cannot contain excessive repeated characters")
         }
-        
+
         return PasswordValidationResult(
             isValid = errors.isEmpty(),
             errors = errors,
             score = calculatePasswordScore(password)
         )
     }
-    
+
     private fun isCommonPassword(password: String): Boolean {
         val commonPasswords = setOf(
             "password", "123456", "password123", "admin", "qwerty",
@@ -228,7 +232,7 @@ class PasswordValidator {
         )
         return commonPasswords.contains(password.lowercase())
     }
-    
+
     private fun hasSequentialCharacters(password: String): Boolean {
         val sequences = listOf(
             "abcdefghijklmnopqrstuvwxyz",
@@ -237,20 +241,20 @@ class PasswordValidator {
             "asdfghjkl",
             "zxcvbnm"
         )
-        
+
         return sequences.any { sequence ->
             (0..sequence.length - 3).any { i ->
                 val subseq = sequence.substring(i, i + 3)
-                password.lowercase().contains(subseq) || 
+                password.lowercase().contains(subseq) ||
                 password.lowercase().contains(subseq.reversed())
             }
         }
     }
-    
+
     private fun hasExcessiveRepetition(password: String): Boolean {
         var count = 1
         var maxCount = 1
-        
+
         for (i in 1 until password.length) {
             if (password[i] == password[i - 1]) {
                 count++
@@ -259,35 +263,35 @@ class PasswordValidator {
                 count = 1
             }
         }
-        
+
         return maxCount > 2
     }
-    
+
     private fun calculatePasswordScore(password: String): Int {
         var score = 0
-        
+
         // Length bonus
         score += when {
             password.length >= 12 -> 25
             password.length >= 8 -> 15
             else -> 0
         }
-        
+
         // Character variety bonus
         if (password.any { it.isUpperCase() }) score += 10
         if (password.any { it.isLowerCase() }) score += 10
         if (password.any { it.isDigit() }) score += 10
         if (password.any { !it.isLetterOrDigit() }) score += 15
-        
+
         // Entropy bonus
         val uniqueChars = password.toSet().size
         score += (uniqueChars * 2).coerceAtMost(20)
-        
+
         // Pattern penalties
         if (hasSequentialCharacters(password)) score -= 15
         if (hasExcessiveRepetition(password)) score -= 10
         if (isCommonPassword(password)) score -= 25
-        
+
         return score.coerceIn(0, 100)
     }
 }
@@ -300,7 +304,7 @@ data class PasswordValidationResult(
     val strength: PasswordStrength
         get() = when (score) {
             in 0..30 -> PasswordStrength.WEAK
-            in 31..60 -> PasswordStrength.MEDIUM  
+            in 31..60 -> PasswordStrength.MEDIUM
             in 61..80 -> PasswordStrength.STRONG
             else -> PasswordStrength.VERY_STRONG
         }
@@ -329,12 +333,12 @@ class SecurityConfiguration(
     private val userDetailsService: UserDetailsService,
     private val passwordEncoder: PasswordEncoder
 ) {
-    
+
     @Bean
     fun jwtAuthenticationFilter(jwtTokenProvider: JwtTokenProvider): JwtAuthenticationFilter {
         return JwtAuthenticationFilter(jwtTokenProvider)
     }
-    
+
     @Bean
     @Order(1)
     fun apiSecurityFilterChain(
@@ -363,37 +367,37 @@ class SecurityConfiguration(
                     .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
-                    
+
                     // Health checks and monitoring
                     .requestMatchers("/api/health").permitAll()
                     .requestMatchers("/api/info").permitAll()
-                    
+
                     // API documentation
                     .requestMatchers("/api/docs/**").permitAll()
                     .requestMatchers("/api/swagger-ui/**").permitAll()
                     .requestMatchers("/v3/api-docs/**").permitAll()
-                    
+
                     // Admin endpoints
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    
+
                     // User management
                     .requestMatchers(HttpMethod.GET, "/api/users/me").hasRole("USER")
                     .requestMatchers(HttpMethod.PUT, "/api/users/me").hasRole("USER")
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me").hasRole("USER")
                     .requestMatchers("/api/users/**").hasRole("ADMIN")
-                    
+
                     // All other API endpoints require authentication
                     .requestMatchers("/api/**").authenticated()
-                    
+
                     // Everything else
                     .anyRequest().permitAll()
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .build()
     }
-    
+
     @Bean
-    @Order(2) 
+    @Order(2)
     fun webSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http
             .requestMatcher(RequestMatcher { request ->
@@ -443,7 +447,7 @@ class SecurityConfiguration(
             }
             .build()
     }
-    
+
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
@@ -452,17 +456,17 @@ class SecurityConfiguration(
         configuration.allowedHeaders = securityProperties.cors.allowedHeaders
         configuration.allowCredentials = securityProperties.cors.allowCredentials
         configuration.maxAge = securityProperties.cors.maxAge
-        
+
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/**", configuration)
         return source
     }
-    
+
     @Bean
     fun authenticationManager(authenticationConfiguration: AuthenticationConfiguration): AuthenticationManager {
         return authenticationConfiguration.authenticationManager
     }
-    
+
     @Bean
     fun daoAuthenticationProvider(): DaoAuthenticationProvider {
         val provider = DaoAuthenticationProvider()
@@ -471,7 +475,7 @@ class SecurityConfiguration(
         provider.setHideUserNotFoundExceptions(false)
         return provider
     }
-    
+
     @Bean
     fun sessionRegistry(): SessionRegistry {
         return SessionRegistryImpl()
@@ -481,27 +485,27 @@ class SecurityConfiguration(
 // JWT Authentication Entry Point
 @Component
 class JwtAuthenticationEntryPoint : AuthenticationEntryPoint {
-    
+
     private val logger = LoggerFactory.getLogger(JwtAuthenticationEntryPoint::class.java)
     private val objectMapper = jacksonObjectMapper()
-    
+
     override fun commence(
         request: HttpServletRequest,
         response: HttpServletResponse,
         authException: AuthenticationException
     ) {
         logger.error("Unauthorized error: {}", authException.message)
-        
+
         response.contentType = MediaType.APPLICATION_JSON_VALUE
         response.status = HttpServletResponse.SC_UNAUTHORIZED
-        
+
         val errorResponse = mapOf(
             "error" to "Unauthorized",
             "message" to "Authentication required",
             "path" to request.requestURI,
             "timestamp" to Instant.now().toString()
         )
-        
+
         objectMapper.writeValue(response.outputStream, errorResponse)
     }
 }
@@ -509,27 +513,27 @@ class JwtAuthenticationEntryPoint : AuthenticationEntryPoint {
 // JWT Access Denied Handler
 @Component
 class JwtAccessDeniedHandler : AccessDeniedHandler {
-    
+
     private val logger = LoggerFactory.getLogger(JwtAccessDeniedHandler::class.java)
     private val objectMapper = jacksonObjectMapper()
-    
+
     override fun handle(
         request: HttpServletRequest,
         response: HttpServletResponse,
         accessDeniedException: AccessDeniedException
     ) {
         logger.error("Access denied error: {}", accessDeniedException.message)
-        
+
         response.contentType = MediaType.APPLICATION_JSON_VALUE
         response.status = HttpServletResponse.SC_FORBIDDEN
-        
+
         val errorResponse = mapOf(
             "error" to "Forbidden",
             "message" to "Insufficient permissions",
             "path" to request.requestURI,
             "timestamp" to Instant.now().toString()
         )
-        
+
         objectMapper.writeValue(response.outputStream, errorResponse)
     }
 }
@@ -544,39 +548,39 @@ class CustomUserDetailsService(
     private val userRepository: UserRepository,
     private val loginAttemptService: LoginAttemptService
 ) : UserDetailsService {
-    
+
     private val logger = LoggerFactory.getLogger(CustomUserDetailsService::class.java)
-    
+
     override fun loadUserByUsername(username: String): UserDetails {
         logger.debug("Loading user by username: {}", username)
-        
+
         // Check if user is temporarily locked due to failed attempts
         if (loginAttemptService.isBlocked(username)) {
             logger.warn("Login attempt blocked for user: {}", username)
             throw LockedException("Account temporarily locked due to failed login attempts")
         }
-        
+
         val user = userRepository.findByUsernameOrEmail(username, username)
             ?: run {
                 logger.warn("User not found: {}", username)
                 throw UsernameNotFoundException("User not found: $username")
             }
-        
+
         // Log successful user loading (but not the full user details)
         logger.debug("User loaded successfully: {}", user.username)
-        
+
         return CustomUserPrincipal.create(user)
     }
-    
+
     fun loadUserById(userId: Long): UserDetails {
         logger.debug("Loading user by ID: {}", userId)
-        
+
         val user = userRepository.findById(userId).orElse(null)
             ?: run {
                 logger.warn("User not found with ID: {}", userId)
                 throw UsernameNotFoundException("User not found with ID: $userId")
             }
-        
+
         return CustomUserPrincipal.create(user)
     }
 }
@@ -593,13 +597,13 @@ data class CustomUserPrincipal(
     private val credentialsNonExpired: Boolean,
     private val accountNonLocked: Boolean
 ) : UserDetails {
-    
+
     companion object {
         fun create(user: User): CustomUserPrincipal {
             val authorities = user.authorities.map { authority ->
                 SimpleGrantedAuthority("ROLE_${authority.name}")
             }
-            
+
             return CustomUserPrincipal(
                 id = user.id,
                 username = user.username,
@@ -613,7 +617,7 @@ data class CustomUserPrincipal(
             )
         }
     }
-    
+
     override fun getAuthorities(): Collection<GrantedAuthority> = authorities
     override fun getPassword(): String = password
     override fun getUsername(): String = username
@@ -621,12 +625,12 @@ data class CustomUserPrincipal(
     override fun isAccountNonLocked(): Boolean = accountNonLocked
     override fun isCredentialsNonExpired(): Boolean = credentialsNonExpired
     override fun isEnabled(): Boolean = enabled
-    
+
     // Additional methods for easier access
     fun hasRole(role: String): Boolean {
         return authorities.any { it.authority == "ROLE_$role" }
     }
-    
+
     fun hasAuthority(authority: String): Boolean {
         return authorities.any { it.authority == authority }
     }
@@ -637,44 +641,44 @@ data class CustomUserPrincipal(
 class LoginAttemptService(
     private val redisTemplate: RedisTemplate<String, String>
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(LoginAttemptService::class.java)
     private val maxAttempts = 5
     private val blockDuration = Duration.ofMinutes(15)
-    
+
     fun recordLoginSuccess(username: String) {
         val key = "login_attempts:$username"
         redisTemplate.delete(key)
         logger.debug("Cleared login attempts for user: {}", username)
     }
-    
+
     fun recordLoginFailure(username: String) {
         val key = "login_attempts:$username"
         val attempts = redisTemplate.opsForValue().increment(key) ?: 1
-        
+
         if (attempts == 1L) {
             redisTemplate.expire(key, blockDuration)
         }
-        
+
         logger.warn("Login failure #{} for user: {}", attempts, username)
-        
+
         if (attempts >= maxAttempts) {
             logger.warn("User {} blocked after {} failed attempts", username, attempts)
         }
     }
-    
+
     fun isBlocked(username: String): Boolean {
         val key = "login_attempts:$username"
         val attempts = redisTemplate.opsForValue().get(key)?.toLongOrNull() ?: 0
         return attempts >= maxAttempts
     }
-    
+
     fun getRemainingAttempts(username: String): Int {
         val key = "login_attempts:$username"
         val attempts = redisTemplate.opsForValue().get(key)?.toIntOrNull() ?: 0
         return (maxAttempts - attempts).coerceAtLeast(0)
     }
-    
+
     fun getBlockTimeRemaining(username: String): Duration? {
         val key = "login_attempts:$username"
         val ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS)
@@ -691,28 +695,28 @@ class SecurityEventListener(
     private val loginAttemptService: LoginAttemptService,
     private val securityEventService: SecurityEventService
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(SecurityEventListener::class.java)
-    
+
     @EventListener
     fun handleAuthenticationSuccess(event: AuthenticationSuccessEvent) {
         val username = event.authentication.name
         loginAttemptService.recordLoginSuccess(username)
-        
+
         securityEventService.recordEvent(
             SecurityEventType.LOGIN_SUCCESS,
             username,
             "User logged in successfully"
         )
-        
+
         logger.info("Authentication success for user: {}", username)
     }
-    
+
     @EventListener
     fun handleAuthenticationFailure(event: AbstractAuthenticationFailureEvent) {
         val username = event.authentication.name
         loginAttemptService.recordLoginFailure(username)
-        
+
         val reason = when (event.exception) {
             is BadCredentialsException -> "Invalid credentials"
             is LockedException -> "Account locked"
@@ -721,26 +725,26 @@ class SecurityEventListener(
             is CredentialsExpiredException -> "Credentials expired"
             else -> "Authentication failed"
         }
-        
+
         securityEventService.recordEvent(
             SecurityEventType.LOGIN_FAILURE,
             username,
             reason
         )
-        
+
         logger.warn("Authentication failure for user: {} - {}", username, reason)
     }
-    
+
     @EventListener
     fun handleLogoutSuccess(event: LogoutSuccessEvent) {
         val username = event.authentication?.name ?: "unknown"
-        
+
         securityEventService.recordEvent(
             SecurityEventType.LOGOUT,
             username,
             "User logged out"
         )
-        
+
         logger.info("Logout success for user: {}", username)
     }
 }
@@ -750,7 +754,7 @@ class SecurityEventListener(
 class SecurityEventService(
     private val securityEventRepository: SecurityEventRepository
 ) {
-    
+
     fun recordEvent(type: SecurityEventType, username: String, details: String, ipAddress: String? = null) {
         val event = SecurityEvent(
             type = type,
@@ -759,10 +763,10 @@ class SecurityEventService(
             ipAddress = ipAddress,
             timestamp = LocalDateTime.now()
         )
-        
+
         securityEventRepository.save(event)
     }
-    
+
     fun getSecurityEvents(
         username: String? = null,
         type: SecurityEventType? = null,
@@ -779,27 +783,27 @@ data class SecurityEvent(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     val type: SecurityEventType,
-    
+
     @Column(nullable = false)
     val username: String,
-    
+
     @Column(length = 1000)
     val details: String,
-    
+
     @Column(name = "ip_address")
     val ipAddress: String?,
-    
+
     @Column(nullable = false)
     val timestamp: LocalDateTime
 )
 
 enum class SecurityEventType {
     LOGIN_SUCCESS,
-    LOGIN_FAILURE, 
+    LOGIN_FAILURE,
     LOGOUT,
     PASSWORD_CHANGE,
     ACCOUNT_LOCKED,
@@ -822,19 +826,19 @@ class JwtTokenProvider(
     private val securityProperties: SecurityProperties,
     private val redisTemplate: RedisTemplate<String, String>
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(JwtTokenProvider::class.java)
-    
+
     private val algorithm: Algorithm by lazy {
         Algorithm.HMAC256(securityProperties.jwt.secret)
     }
-    
+
     private val verifier: JWTVerifier by lazy {
         JWT.require(algorithm)
             .withIssuer(securityProperties.jwt.issuer)
             .build()
     }
-    
+
     /**
      * Generate access token
      */
@@ -842,9 +846,9 @@ class JwtTokenProvider(
         val now = Instant.now()
         val expiry = now.plus(securityProperties.jwt.accessTokenExpiration)
         val jti = UUID.randomUUID().toString()
-        
+
         val authorities = userPrincipal.authorities.map { it.authority }
-        
+
         val token = JWT.create()
             .withIssuer(securityProperties.jwt.issuer)
             .withSubject(userPrincipal.username)
@@ -856,14 +860,14 @@ class JwtTokenProvider(
             .withClaim("email", userPrincipal.email)
             .withClaim("authorities", authorities)
             .sign(algorithm)
-        
+
         // Store token metadata for tracking
         storeTokenMetadata(jti, userPrincipal.id, TokenType.ACCESS, expiry)
-        
+
         logger.debug("Generated access token for user: {}", userPrincipal.username)
         return token
     }
-    
+
     /**
      * Generate refresh token
      */
@@ -871,7 +875,7 @@ class JwtTokenProvider(
         val now = Instant.now()
         val expiry = now.plus(securityProperties.jwt.refreshTokenExpiration)
         val jti = UUID.randomUUID().toString()
-        
+
         val token = JWT.create()
             .withIssuer(securityProperties.jwt.issuer)
             .withSubject(userPrincipal.username)
@@ -882,14 +886,14 @@ class JwtTokenProvider(
             .withClaim("userId", userPrincipal.id)
             .withClaim("tokenType", "refresh")
             .sign(algorithm)
-        
+
         // Store refresh token metadata
         storeTokenMetadata(jti, userPrincipal.id, TokenType.REFRESH, expiry)
-        
+
         logger.debug("Generated refresh token for user: {}", userPrincipal.username)
         return token
     }
-    
+
     /**
      * Validate and parse JWT token
      */
@@ -897,12 +901,12 @@ class JwtTokenProvider(
         return try {
             val decodedToken = verifier.verify(token)
             val jti = decodedToken.id
-            
+
             // Check if token is blacklisted
             if (isTokenBlacklisted(jti)) {
                 return JwtValidationResult.invalid("Token has been revoked")
             }
-            
+
             // Extract claims
             val claims = JwtClaims(
                 sub = decodedToken.subject,
@@ -914,9 +918,9 @@ class JwtTokenProvider(
                 iss = decodedToken.issuer,
                 aud = decodedToken.audience
             )
-            
+
             JwtValidationResult.valid(claims)
-            
+
         } catch (ex: TokenExpiredException) {
             logger.debug("Token expired: {}", ex.message)
             JwtValidationResult.invalid("Token has expired")
@@ -928,7 +932,7 @@ class JwtTokenProvider(
             JwtValidationResult.invalid("Token validation error")
         }
     }
-    
+
     /**
      * Extract username from token without full validation
      */
@@ -941,7 +945,7 @@ class JwtTokenProvider(
             null
         }
     }
-    
+
     /**
      * Blacklist a token
      */
@@ -950,10 +954,10 @@ class JwtTokenProvider(
             val decodedToken = JWT.decode(token)
             val jti = decodedToken.id
             val expiry = decodedToken.expiresAt.toInstant()
-            
+
             blacklistToken(jti, expiry)
             removeTokenMetadata(jti)
-            
+
             logger.info("Token revoked: {}", jti)
             true
         } catch (ex: Exception) {
@@ -961,35 +965,35 @@ class JwtTokenProvider(
             false
         }
     }
-    
+
     /**
      * Revoke all tokens for a user
      */
     fun revokeAllUserTokens(userId: Long) {
         val pattern = "token_metadata:*:$userId"
         val keys = redisTemplate.keys(pattern)
-        
+
         keys?.forEach { key ->
             val parts = key.split(":")
             if (parts.size >= 3) {
                 val jti = parts[2]
                 redisTemplate.delete(key)
-                
+
                 // Add to blacklist until expiry
                 val ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS)
                 if (ttl > 0) {
                     redisTemplate.opsForValue().set(
-                        "blacklist:$jti", 
-                        "revoked", 
+                        "blacklist:$jti",
+                        "revoked",
                         Duration.ofSeconds(ttl)
                     )
                 }
             }
         }
-        
+
         logger.info("All tokens revoked for user: {}", userId)
     }
-    
+
     private fun storeTokenMetadata(jti: String, userId: Long, type: TokenType, expiry: Instant) {
         val key = "token_metadata:$jti:$userId"
         val metadata = TokenMetadata(
@@ -999,15 +1003,15 @@ class JwtTokenProvider(
             issuedAt = Instant.now(),
             expiresAt = expiry
         )
-        
+
         val ttl = Duration.between(Instant.now(), expiry)
         redisTemplate.opsForValue().set(
-            key, 
+            key,
             jacksonObjectMapper().writeValueAsString(metadata),
             ttl
         )
     }
-    
+
     private fun removeTokenMetadata(jti: String) {
         val pattern = "token_metadata:$jti:*"
         val keys = redisTemplate.keys(pattern)
@@ -1015,13 +1019,13 @@ class JwtTokenProvider(
             redisTemplate.delete(keys)
         }
     }
-    
+
     private fun blacklistToken(jti: String, expiry: Instant) {
         val key = "blacklist:$jti"
         val ttl = Duration.between(Instant.now(), expiry)
         redisTemplate.opsForValue().set(key, "revoked", ttl)
     }
-    
+
     private fun isTokenBlacklisted(jti: String): Boolean {
         return redisTemplate.hasKey("blacklist:$jti")
     }
@@ -1031,10 +1035,10 @@ class JwtTokenProvider(
 sealed class JwtValidationResult {
     data class Valid(val claims: JwtClaims) : JwtValidationResult()
     data class Invalid(val reason: String) : JwtValidationResult()
-    
+
     val isValid: Boolean get() = this is Valid
     val isInvalid: Boolean get() = this is Invalid
-    
+
     companion object {
         fun valid(claims: JwtClaims) = Valid(claims)
         fun invalid(reason: String) = Invalid(reason)
@@ -1061,9 +1065,9 @@ enum class TokenType {
 class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider
 ) : OncePerRequestFilter() {
-    
+
     private val logger = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
-    
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -1071,32 +1075,32 @@ class JwtAuthenticationFilter(
     ) {
         try {
             val token = extractTokenFromRequest(request)
-            
+
             if (token != null && SecurityContextHolder.getContext().authentication == null) {
                 val validationResult = jwtTokenProvider.validateToken(token)
-                
+
                 if (validationResult.isValid) {
                     val claims = (validationResult as JwtValidationResult.Valid).claims
                     val authentication = createAuthentication(claims)
                     SecurityContextHolder.getContext().authentication = authentication
-                    
+
                     logger.debug("Set authentication for user: {}", claims.sub)
                 } else {
                     val reason = (validationResult as JwtValidationResult.Invalid).reason
                     logger.debug("Invalid token: {}", reason)
                 }
             }
-            
+
         } catch (ex: Exception) {
             logger.error("Cannot set user authentication", ex)
         }
-        
+
         filterChain.doFilter(request, response)
     }
-    
+
     private fun extractTokenFromRequest(request: HttpServletRequest): String? {
         val bearerToken = request.getHeader("Authorization")
-        
+
         return if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             bearerToken.substring(7)
         } else {
@@ -1104,10 +1108,10 @@ class JwtAuthenticationFilter(
             request.cookies?.find { it.name == "access_token" }?.value
         }
     }
-    
+
     private fun createAuthentication(claims: JwtClaims): Authentication {
         val authorities = claims.authorities.map { SimpleGrantedAuthority(it) }
-        
+
         val principal = CustomUserPrincipal(
             id = claims.userId,
             username = claims.sub,
@@ -1119,7 +1123,7 @@ class JwtAuthenticationFilter(
             credentialsNonExpired = true,
             accountNonLocked = true
         )
-        
+
         return JwtAuthenticationToken(principal, authorities, claims)
     }
 }
@@ -1130,14 +1134,14 @@ class JwtAuthenticationToken(
     private val authorities: Collection<GrantedAuthority>,
     val claims: JwtClaims
 ) : AbstractAuthenticationToken(authorities) {
-    
+
     init {
         isAuthenticated = true
     }
-    
+
     override fun getCredentials(): Any = ""
     override fun getPrincipal(): Any = principal
-    
+
     fun getUserId(): Long = principal.id
     fun getUsername(): String = principal.username
     fun getTokenId(): String = claims.jti
@@ -1158,15 +1162,15 @@ class AuthenticationService(
     private val securityEventService: SecurityEventService,
     private val passwordValidator: PasswordValidator
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(AuthenticationService::class.java)
-    
+
     /**
      * Authenticate user and return tokens
      */
     fun login(loginRequest: LoginRequest, ipAddress: String? = null): LoginResponse {
         logger.info("Login attempt for user: {}", loginRequest.username)
-        
+
         try {
             // Authenticate user
             val authentication = authenticationManager.authenticate(
@@ -1175,16 +1179,16 @@ class AuthenticationService(
                     loginRequest.password
                 )
             )
-            
+
             val userPrincipal = authentication.principal as CustomUserPrincipal
-            
+
             // Update last login time
             updateLastLoginTime(userPrincipal.id)
-            
+
             // Generate tokens
             val accessToken = jwtTokenProvider.generateAccessToken(userPrincipal)
             val refreshToken = jwtTokenProvider.generateRefreshToken(userPrincipal)
-            
+
             // Record security event
             securityEventService.recordEvent(
                 SecurityEventType.LOGIN_SUCCESS,
@@ -1192,9 +1196,9 @@ class AuthenticationService(
                 "User logged in successfully",
                 ipAddress
             )
-            
+
             logger.info("Login successful for user: {}", loginRequest.username)
-            
+
             return LoginResponse(
                 accessToken = accessToken,
                 refreshToken = refreshToken,
@@ -1208,7 +1212,7 @@ class AuthenticationService(
                     lastLogin = LocalDateTime.now()
                 )
             )
-            
+
         } catch (ex: Exception) {
             securityEventService.recordEvent(
                 SecurityEventType.LOGIN_FAILURE,
@@ -1216,40 +1220,40 @@ class AuthenticationService(
                 "Login failed: ${ex.message}",
                 ipAddress
             )
-            
+
             logger.warn("Login failed for user: {}", loginRequest.username, ex)
             throw AuthenticationFailedException("Authentication failed", ex)
         }
     }
-    
+
     /**
      * Refresh access token using refresh token
      */
     fun refreshToken(refreshTokenRequest: RefreshTokenRequest): LoginResponse {
         val validationResult = jwtTokenProvider.validateToken(refreshTokenRequest.refreshToken)
-        
+
         if (validationResult.isInvalid) {
             val reason = (validationResult as JwtValidationResult.Invalid).reason
             throw InvalidTokenException("Invalid refresh token: $reason")
         }
-        
+
         val claims = (validationResult as JwtValidationResult.Valid).claims
-        
+
         // Load fresh user details to get current authorities
         val userPrincipal = userDetailsService.loadUserById(claims.userId) as CustomUserPrincipal
-        
+
         // Generate new access token
         val newAccessToken = jwtTokenProvider.generateAccessToken(userPrincipal)
-        
+
         // Record security event
         securityEventService.recordEvent(
             SecurityEventType.TOKEN_REFRESH,
             userPrincipal.username,
             "Token refreshed successfully"
         )
-        
+
         logger.debug("Token refreshed for user: {}", userPrincipal.username)
-        
+
         return LoginResponse(
             accessToken = newAccessToken,
             refreshToken = refreshTokenRequest.refreshToken, // Keep same refresh token
@@ -1264,7 +1268,7 @@ class AuthenticationService(
             )
         )
     }
-    
+
     /**
      * Logout user and revoke tokens
      */
@@ -1272,7 +1276,7 @@ class AuthenticationService(
         try {
             // Revoke the specific token
             jwtTokenProvider.revokeToken(token)
-            
+
             // Record security event
             securityEventService.recordEvent(
                 SecurityEventType.LOGOUT,
@@ -1280,43 +1284,43 @@ class AuthenticationService(
                 "User logged out",
                 ipAddress
             )
-            
+
             logger.info("Logout successful for user: {}", username)
-            
+
         } catch (ex: Exception) {
             logger.error("Error during logout for user: {}", username, ex)
         }
     }
-    
+
     /**
      * Register new user
      */
     fun register(registerRequest: RegisterRequest): UserRegistrationResponse {
         logger.info("Registration attempt for username: {}", registerRequest.username)
-        
+
         // Validate password
         val passwordValidation = passwordValidator.validatePassword(
-            registerRequest.password, 
+            registerRequest.password,
             registerRequest.username
         )
-        
+
         if (!passwordValidation.isValid) {
             throw PasswordValidationException("Password validation failed", passwordValidation.errors)
         }
-        
+
         // Check if username already exists
         if (userRepository.existsByUsername(registerRequest.username)) {
             throw UserAlreadyExistsException("Username '${registerRequest.username}' is already taken")
         }
-        
+
         // Check if email already exists
         if (userRepository.existsByEmail(registerRequest.email)) {
             throw UserAlreadyExistsException("Email '${registerRequest.email}' is already registered")
         }
-        
+
         // Create new user
         val hashedPassword = passwordEncoder.encode(registerRequest.password)
-        
+
         val user = User(
             username = registerRequest.username,
             email = registerRequest.email,
@@ -1324,11 +1328,11 @@ class AuthenticationService(
             authorities = setOf(Authority.USER), // Default user role
             enabled = true
         )
-        
+
         val savedUser = userRepository.save(user)
-        
+
         logger.info("User registered successfully: {}", savedUser.username)
-        
+
         return UserRegistrationResponse(
             id = savedUser.id,
             username = savedUser.username,
@@ -1336,7 +1340,7 @@ class AuthenticationService(
             message = "User registered successfully"
         )
     }
-    
+
     /**
      * Change user password
      */
@@ -1347,7 +1351,7 @@ class AuthenticationService(
     ) {
         val user = userRepository.findById(userId).orElse(null)
             ?: throw UserNotFoundException("User not found")
-        
+
         // Verify current password
         if (!passwordEncoder.matches(changePasswordRequest.currentPassword, user.password)) {
             securityEventService.recordEvent(
@@ -1358,25 +1362,25 @@ class AuthenticationService(
             )
             throw InvalidPasswordException("Current password is incorrect")
         }
-        
+
         // Validate new password
         val passwordValidation = passwordValidator.validatePassword(
             changePasswordRequest.newPassword,
             user.username
         )
-        
+
         if (!passwordValidation.isValid) {
             throw PasswordValidationException("New password validation failed", passwordValidation.errors)
         }
-        
+
         // Update password
         user.password = passwordEncoder.encode(changePasswordRequest.newPassword)
         user.credentialsExpired = false
         userRepository.save(user)
-        
+
         // Revoke all existing tokens to force re-authentication
         jwtTokenProvider.revokeAllUserTokens(userId)
-        
+
         // Record security event
         securityEventService.recordEvent(
             SecurityEventType.PASSWORD_CHANGE,
@@ -1384,10 +1388,10 @@ class AuthenticationService(
             "Password changed successfully",
             ipAddress
         )
-        
+
         logger.info("Password changed successfully for user: {}", user.username)
     }
-    
+
     private fun updateLastLoginTime(userId: Long) {
         userRepository.updateLastLoginTime(userId, LocalDateTime.now())
     }
@@ -1398,11 +1402,11 @@ data class RegisterRequest(
     @field:NotBlank(message = "Username is required")
     @field:Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     val username: String,
-    
+
     @field:NotBlank(message = "Email is required")
     @field:Email(message = "Email must be valid")
     val email: String,
-    
+
     @field:NotBlank(message = "Password is required")
     val password: String
 )
@@ -1417,7 +1421,7 @@ data class UserRegistrationResponse(
 data class ChangePasswordRequest(
     @field:NotBlank(message = "Current password is required")
     val currentPassword: String,
-    
+
     @field:NotBlank(message = "New password is required")
     val newPassword: String
 )
@@ -1443,9 +1447,9 @@ class RateLimitingFilter(
     private val redisTemplate: RedisTemplate<String, String>,
     private val rateLimitProperties: RateLimitProperties
 ) : OncePerRequestFilter() {
-    
+
     private val logger = LoggerFactory.getLogger(RateLimitingFilter::class.java)
-    
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -1453,32 +1457,32 @@ class RateLimitingFilter(
     ) {
         val clientIp = getClientIpAddress(request)
         val endpoint = "${request.method}:${request.requestURI}"
-        
+
         // Check different rate limit tiers
         if (!checkRateLimit(clientIp, endpoint, request, response)) {
             return
         }
-        
+
         filterChain.doFilter(request, response)
     }
-    
+
     private fun checkRateLimit(
         clientIp: String,
         endpoint: String,
         request: HttpServletRequest,
         response: HttpServletResponse
     ): Boolean {
-        
+
         // Global rate limit per IP
         if (!checkGlobalRateLimit(clientIp, response)) {
             return false
         }
-        
+
         // Endpoint-specific rate limit
         if (!checkEndpointRateLimit(clientIp, endpoint, response)) {
             return false
         }
-        
+
         // Authenticated user rate limit (if user is authenticated)
         val authentication = SecurityContextHolder.getContext().authentication
         if (authentication != null && authentication.isAuthenticated) {
@@ -1487,28 +1491,28 @@ class RateLimitingFilter(
                 return false
             }
         }
-        
+
         return true
     }
-    
+
     private fun checkGlobalRateLimit(clientIp: String, response: HttpServletResponse): Boolean {
         val key = "rate_limit:global:$clientIp"
         val limit = rateLimitProperties.global
         return checkLimit(key, limit.requests, limit.duration, response)
     }
-    
+
     private fun checkEndpointRateLimit(clientIp: String, endpoint: String, response: HttpServletResponse): Boolean {
         val endpointConfig = rateLimitProperties.endpoints[endpoint] ?: return true
         val key = "rate_limit:endpoint:$clientIp:$endpoint"
         return checkLimit(key, endpointConfig.requests, endpointConfig.duration, response)
     }
-    
+
     private fun checkUserRateLimit(username: String, response: HttpServletResponse): Boolean {
         val key = "rate_limit:user:$username"
         val limit = rateLimitProperties.user
         return checkLimit(key, limit.requests, limit.duration, response)
     }
-    
+
     private fun checkLimit(
         key: String,
         maxRequests: Long,
@@ -1516,55 +1520,55 @@ class RateLimitingFilter(
         response: HttpServletResponse
     ): Boolean {
         val current = redisTemplate.opsForValue().increment(key) ?: 1L
-        
+
         if (current == 1L) {
             redisTemplate.expire(key, duration)
         }
-        
+
         if (current > maxRequests) {
             val ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS)
-            
+
             response.status = HttpStatus.TOO_MANY_REQUESTS.value()
             response.contentType = MediaType.APPLICATION_JSON_VALUE
             response.addHeader("X-Rate-Limit-Limit", maxRequests.toString())
             response.addHeader("X-Rate-Limit-Remaining", "0")
             response.addHeader("X-Rate-Limit-Reset", (System.currentTimeMillis() / 1000 + ttl).toString())
-            
+
             val errorResponse = mapOf(
                 "error" to "Too Many Requests",
                 "message" to "Rate limit exceeded. Try again in $ttl seconds",
                 "retryAfter" to ttl
             )
-            
+
             val objectMapper = jacksonObjectMapper()
             objectMapper.writeValue(response.outputStream, errorResponse)
-            
+
             logger.warn("Rate limit exceeded for key: {}", key)
             return false
         }
-        
+
         // Add rate limit headers
         val remaining = maxRequests - current
         val ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS)
-        
+
         response.addHeader("X-Rate-Limit-Limit", maxRequests.toString())
         response.addHeader("X-Rate-Limit-Remaining", remaining.toString())
         response.addHeader("X-Rate-Limit-Reset", (System.currentTimeMillis() / 1000 + ttl).toString())
-        
+
         return true
     }
-    
+
     private fun getClientIpAddress(request: HttpServletRequest): String {
         val xForwardedFor = request.getHeader("X-Forwarded-For")
         if (xForwardedFor != null && xForwardedFor.isNotEmpty()) {
             return xForwardedFor.split(",")[0].trim()
         }
-        
+
         val xRealIp = request.getHeader("X-Real-IP")
         if (xRealIp != null && xRealIp.isNotEmpty()) {
             return xRealIp
         }
-        
+
         return request.remoteAddr
     }
 }
@@ -1591,43 +1595,43 @@ data class RateLimitProperties(
 ```kotlin
 @Component
 class ApiKeyAuthenticationFilter : OncePerRequestFilter() {
-    
+
     private val logger = LoggerFactory.getLogger(ApiKeyAuthenticationFilter::class.java)
-    
+
     @Autowired
     private lateinit var apiKeyService: ApiKeyService
-    
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        
+
         // Only process API endpoints that require API key authentication
         if (!requiresApiKeyAuth(request)) {
             filterChain.doFilter(request, response)
             return
         }
-        
+
         val apiKey = extractApiKey(request)
-        
+
         if (apiKey != null) {
             try {
                 val apiKeyDetails = apiKeyService.validateApiKey(apiKey)
-                
+
                 if (apiKeyDetails != null && apiKeyDetails.isActive) {
                     val authentication = createApiKeyAuthentication(apiKeyDetails)
                     SecurityContextHolder.getContext().authentication = authentication
-                    
+
                     // Record API key usage
                     apiKeyService.recordUsage(apiKeyDetails.id, request.requestURI)
-                    
+
                     logger.debug("API key authentication successful for key: {}", apiKeyDetails.name)
                 } else {
                     handleInvalidApiKey(response, "Invalid or inactive API key")
                     return
                 }
-                
+
             } catch (ex: Exception) {
                 logger.error("Error validating API key", ex)
                 handleInvalidApiKey(response, "API key validation error")
@@ -1637,16 +1641,16 @@ class ApiKeyAuthenticationFilter : OncePerRequestFilter() {
             handleInvalidApiKey(response, "API key required")
             return
         }
-        
+
         filterChain.doFilter(request, response)
     }
-    
+
     private fun requiresApiKeyAuth(request: HttpServletRequest): Boolean {
         // Check if this is an API endpoint that requires API key
         return request.requestURI.startsWith("/api/external/") ||
                request.getHeader("X-API-Client") != null
     }
-    
+
     private fun extractApiKey(request: HttpServletRequest): String? {
         // Try multiple sources for API key
         return request.getHeader("X-API-Key")
@@ -1655,22 +1659,22 @@ class ApiKeyAuthenticationFilter : OncePerRequestFilter() {
             }
             ?: request.getParameter("api_key")
     }
-    
+
     private fun createApiKeyAuthentication(apiKeyDetails: ApiKeyDetails): Authentication {
         val authorities = apiKeyDetails.permissions.map { SimpleGrantedAuthority("API_$it") }
         return ApiKeyAuthenticationToken(apiKeyDetails, authorities)
     }
-    
+
     private fun handleInvalidApiKey(response: HttpServletResponse, message: String) {
         response.status = HttpStatus.UNAUTHORIZED.value()
         response.contentType = MediaType.APPLICATION_JSON_VALUE
-        
+
         val errorResponse = mapOf(
             "error" to "Unauthorized",
             "message" to message,
             "timestamp" to Instant.now().toString()
         )
-        
+
         val objectMapper = jacksonObjectMapper()
         objectMapper.writeValue(response.outputStream, errorResponse)
     }
@@ -1680,14 +1684,14 @@ class ApiKeyAuthenticationToken(
     private val apiKeyDetails: ApiKeyDetails,
     private val authorities: Collection<GrantedAuthority>
 ) : AbstractAuthenticationToken(authorities) {
-    
+
     init {
         isAuthenticated = true
     }
-    
+
     override fun getCredentials(): Any = apiKeyDetails.keyHash
     override fun getPrincipal(): Any = apiKeyDetails
-    
+
     fun getApiKeyId(): Long = apiKeyDetails.id
     fun getApiKeyName(): String = apiKeyDetails.name
 }
@@ -1698,9 +1702,9 @@ class ApiKeyService(
     private val apiKeyRepository: ApiKeyRepository,
     private val passwordEncoder: PasswordEncoder
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(ApiKeyService::class.java)
-    
+
     fun validateApiKey(apiKey: String): ApiKeyDetails? {
         return try {
             // Find by key hash for security
@@ -1711,7 +1715,7 @@ class ApiKeyService(
             null
         }
     }
-    
+
     fun recordUsage(apiKeyId: Long, endpoint: String) {
         try {
             apiKeyRepository.recordUsage(apiKeyId, endpoint, LocalDateTime.now())
@@ -1719,11 +1723,11 @@ class ApiKeyService(
             logger.error("Error recording API key usage", ex)
         }
     }
-    
+
     fun createApiKey(request: CreateApiKeyRequest): ApiKeyResponse {
         val apiKey = generateSecureApiKey()
         val hashedKey = passwordEncoder.encode(apiKey)
-        
+
         val apiKeyEntity = ApiKey(
             name = request.name,
             description = request.description,
@@ -1733,9 +1737,9 @@ class ApiKeyService(
             createdBy = request.createdBy,
             expiresAt = request.expiresAt
         )
-        
+
         val saved = apiKeyRepository.save(apiKeyEntity)
-        
+
         return ApiKeyResponse(
             id = saved.id,
             name = saved.name,
@@ -1745,7 +1749,7 @@ class ApiKeyService(
             message = "API key created successfully. Store it securely - it won't be shown again."
         )
     }
-    
+
     private fun generateSecureApiKey(): String {
         val prefix = "sk_"
         val randomPart = UUID.randomUUID().toString().replace("-", "")
@@ -1759,35 +1763,35 @@ data class ApiKey(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
-    
+
     @Column(nullable = false)
     val name: String,
-    
+
     val description: String? = null,
-    
+
     @Column(name = "key_hash", nullable = false, unique = true)
     val keyHash: String,
-    
+
     @ElementCollection
     @CollectionTable(name = "api_key_permissions", joinColumns = [JoinColumn(name = "api_key_id")])
     @Column(name = "permission")
     val permissions: Set<String>,
-    
+
     @Column(nullable = false)
     val active: Boolean = true,
-    
+
     @Column(name = "created_by")
     val createdBy: Long,
-    
+
     @Column(name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    
+
     @Column(name = "expires_at")
     val expiresAt: LocalDateTime? = null,
-    
+
     @Column(name = "last_used_at")
     var lastUsedAt: LocalDateTime? = null,
-    
+
     @Column(name = "usage_count")
     var usageCount: Long = 0
 )
@@ -1828,43 +1832,43 @@ data class ApiKeyResponse(
 ```kotlin
 @Component
 class SecurityAuditFilter : OncePerRequestFilter() {
-    
+
     private val logger = LoggerFactory.getLogger(SecurityAuditFilter::class.java)
-    
+
     @Autowired
     private lateinit var securityAuditService: SecurityAuditService
-    
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        
+
         val startTime = System.currentTimeMillis()
         val requestId = UUID.randomUUID().toString()
-        
+
         // Wrap request and response for audit logging
         val wrappedRequest = ContentCachingRequestWrapper(request)
         val wrappedResponse = ContentCachingResponseWrapper(response)
-        
+
         try {
             MDC.put("requestId", requestId)
             filterChain.doFilter(wrappedRequest, wrappedResponse)
-            
+
         } finally {
             val duration = System.currentTimeMillis() - startTime
-            
+
             // Log security-relevant requests
             if (isSecurityRelevant(wrappedRequest, wrappedResponse)) {
                 logSecurityEvent(wrappedRequest, wrappedResponse, duration)
             }
-            
+
             // Copy response body back
             wrappedResponse.copyBodyToResponse()
             MDC.clear()
         }
     }
-    
+
     private fun isSecurityRelevant(
         request: ContentCachingRequestWrapper,
         response: ContentCachingResponseWrapper
@@ -1872,7 +1876,7 @@ class SecurityAuditFilter : OncePerRequestFilter() {
         val uri = request.requestURI
         val method = request.method
         val status = response.status
-        
+
         return uri.startsWith("/api/auth/") ||
                uri.startsWith("/api/admin/") ||
                uri.contains("password") ||
@@ -1881,7 +1885,7 @@ class SecurityAuditFilter : OncePerRequestFilter() {
                status >= 500 ||
                method in listOf("POST", "PUT", "DELETE")
     }
-    
+
     private fun logSecurityEvent(
         request: ContentCachingRequestWrapper,
         response: ContentCachingResponseWrapper,
@@ -1891,7 +1895,7 @@ class SecurityAuditFilter : OncePerRequestFilter() {
             val authentication = SecurityContextHolder.getContext().authentication
             val username = authentication?.name ?: "anonymous"
             val ipAddress = getClientIpAddress(request)
-            
+
             val auditEvent = SecurityAuditEvent(
                 requestId = MDC.get("requestId"),
                 timestamp = LocalDateTime.now(),
@@ -1909,33 +1913,33 @@ class SecurityAuditFilter : OncePerRequestFilter() {
                     String(response.contentAsByteArray, StandardCharsets.UTF_8)
                 } else null
             )
-            
+
             securityAuditService.logEvent(auditEvent)
-            
+
         } catch (ex: Exception) {
             logger.error("Error logging security audit event", ex)
         }
     }
-    
+
     private fun shouldLogRequestBody(request: ContentCachingRequestWrapper): Boolean {
         val contentType = request.contentType
         val uri = request.requestURI
-        
+
         return contentType?.contains("application/json") == true &&
                !uri.contains("password") &&
                !uri.contains("login") &&
                request.contentAsByteArray.size < 1024 // Limit size
     }
-    
+
     private fun shouldLogResponseBody(response: ContentCachingResponseWrapper): Boolean {
         val contentType = response.contentType
         val status = response.status
-        
+
         return (status >= 400 || status == 200) &&
                contentType?.contains("application/json") == true &&
                response.contentAsByteArray.size < 1024 // Limit size
     }
-    
+
     private fun getClientIpAddress(request: HttpServletRequest): String {
         return request.getHeader("X-Forwarded-For")?.split(",")?.get(0)?.trim()
             ?: request.getHeader("X-Real-IP")
@@ -1949,9 +1953,9 @@ class SecurityAuditFilter : OncePerRequestFilter() {
 class SecurityAuditService(
     private val securityAuditRepository: SecurityAuditRepository
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(SecurityAuditService::class.java)
-    
+
     fun logEvent(auditEvent: SecurityAuditEvent) {
         try {
             securityAuditRepository.save(auditEvent.toEntity())
@@ -1959,7 +1963,7 @@ class SecurityAuditService(
             logger.error("Failed to save security audit event", ex)
         }
     }
-    
+
     fun getAuditEvents(
         username: String? = null,
         ipAddress: String? = null,
@@ -2007,38 +2011,38 @@ data class SecurityAuditEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
-    
+
     @Column(name = "request_id", nullable = false)
     val requestId: String,
-    
+
     @Column(nullable = false)
     val timestamp: LocalDateTime,
-    
+
     @Column(nullable = false)
     val username: String,
-    
+
     @Column(name = "ip_address", nullable = false)
     val ipAddress: String,
-    
+
     @Column(name = "user_agent")
     val userAgent: String?,
-    
+
     @Column(nullable = false)
     val method: String,
-    
+
     @Column(nullable = false)
     val uri: String,
-    
+
     @Column(name = "status_code", nullable = false)
     val statusCode: Int,
-    
+
     @Column(nullable = false)
     val duration: Long,
-    
+
     @Column(name = "request_body", columnDefinition = "TEXT")
     val requestBody: String?,
-    
-    @Column(name = "response_body", columnDefinition = "TEXT") 
+
+    @Column(name = "response_body", columnDefinition = "TEXT")
     val responseBody: String?
 ) {
     fun toDto(): SecurityAuditEvent {
@@ -2070,7 +2074,7 @@ Security is a critical aspect of any modern application, and throughout this cha
 - User domain model with Spring Security integration
 
 **Spring Security Configuration** implemented robust security controls:
-- Separate filter chains for API and web endpoints  
+- Separate filter chains for API and web endpoints
 - JWT-based stateless authentication for APIs
 - Session-based authentication for web interfaces
 - Comprehensive CORS configuration
@@ -2079,7 +2083,7 @@ Security is a critical aspect of any modern application, and throughout this cha
 **JWT Integration** provided modern token-based authentication:
 - Secure JWT token generation with appropriate claims
 - Token validation with blacklisting support
-- Refresh token mechanism for seamless user experience  
+- Refresh token mechanism for seamless user experience
 - Redis-based token metadata tracking
 - Comprehensive token lifecycle management
 
@@ -2100,7 +2104,7 @@ Security is a critical aspect of any modern application, and throughout this cha
 **Kotlin-specific advantages** leveraged:
 
 - Data classes for clean, immutable security models
-- Sealed classes for type-safe authentication results  
+- Sealed classes for type-safe authentication results
 - Extension functions for enhanced security utilities
 - Coroutines integration for non-blocking security operations
 - Null safety for robust security logic

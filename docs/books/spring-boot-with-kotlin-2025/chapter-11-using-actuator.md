@@ -1,7 +1,11 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
 # Chapter 11: Using Actuator
+- TOC
+{:toc}
 
 Spring Boot Actuator is one of the most valuable features of the Spring Boot ecosystem, providing production-ready monitoring, metrics, and operational insights out of the box. In this chapter, we'll explore how to effectively use Actuator in Kotlin-based Spring Boot applications to gain deep visibility into your application's health, performance, and behavior.
 
@@ -21,15 +25,15 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security") // Recommended for production
-    
+
     // Optional: For enhanced metrics
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("io.micrometer:micrometer-registry-jmx")
-    
+
     // Optional: For tracing (if using distributed tracing)
     implementation("io.micrometer:micrometer-tracing-bridge-brave")
     implementation("io.zipkin.reporter2:zipkin-reporter-brave")
-    
+
     // Development and testing
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -44,14 +48,14 @@ Let's start with a comprehensive Actuator configuration that balances functional
 # application.yml
 server:
   port: 8080
-  
+
 management:
   # Use a different port for actuator endpoints in production
   server:
     port: 8081
     ssl:
       enabled: false # Set to true in production with proper certificates
-  
+
   # Configure which endpoints to expose
   endpoints:
     web:
@@ -65,7 +69,7 @@ management:
     jmx:
       exposure:
         include: "*"
-  
+
   # Endpoint-specific configuration
   endpoint:
     health:
@@ -83,7 +87,7 @@ management:
       enabled: true
     shutdown:
       enabled: false # Never enable in production without proper security
-  
+
   # Metrics configuration
   metrics:
     enabled: true
@@ -100,7 +104,7 @@ management:
         http.server.requests: 0.5,0.95,0.99
       slo:
         http.server.requests: 10ms,50ms,100ms,200ms,500ms
-    
+
   # Tracing configuration (if using distributed tracing)
   tracing:
     sampling:
@@ -130,7 +134,7 @@ Security is crucial when exposing Actuator endpoints. Here's a comprehensive sec
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 class ActuatorSecurityConfiguration {
-    
+
     @Bean
     @Order(1)
     fun actuatorSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -141,10 +145,10 @@ class ActuatorSecurityConfiguration {
                     // Public endpoints - no authentication required
                     .requestMatchers(EndpointRequest.to(HealthEndpoint::class.java)).permitAll()
                     .requestMatchers(EndpointRequest.to(InfoEndpoint::class.java)).permitAll()
-                    
+
                     // Prometheus metrics - typically accessed by monitoring systems
                     .requestMatchers(EndpointRequest.to("prometheus")).hasRole("METRICS_READER")
-                    
+
                     // Sensitive endpoints - require admin privileges
                     .requestMatchers(
                         EndpointRequest.to(
@@ -153,7 +157,7 @@ class ActuatorSecurityConfiguration {
                             ConfigurableEnvironmentEndpoint::class.java
                         )
                     ).hasRole("ACTUATOR_ADMIN")
-                    
+
                     // All other actuator endpoints require monitoring role
                     .anyRequest().hasRole("ACTUATOR_USER")
             }
@@ -161,7 +165,7 @@ class ActuatorSecurityConfiguration {
             .csrf { csrf -> csrf.disable() }
             .build()
     }
-    
+
     @Bean
     @Order(2)
     fun applicationSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -178,7 +182,7 @@ class ActuatorSecurityConfiguration {
             }
             .build()
     }
-    
+
     @Bean
     fun actuatorUserDetailsService(): UserDetailsService {
         val actuatorUser = User.builder()
@@ -186,19 +190,19 @@ class ActuatorSecurityConfiguration {
             .password("{noop}actuator-password") // Use proper password encoding in production
             .roles("ACTUATOR_USER")
             .build()
-        
+
         val metricsReader = User.builder()
             .username("metrics-reader")
             .password("{noop}metrics-password")
             .roles("METRICS_READER")
             .build()
-        
+
         val actuatorAdmin = User.builder()
             .username("actuator-admin")
             .password("{noop}admin-password")
             .roles("ACTUATOR_ADMIN", "ACTUATOR_USER", "METRICS_READER")
             .build()
-        
+
         return InMemoryUserDetailsManager(actuatorUser, metricsReader, actuatorAdmin)
     }
 }
@@ -214,7 +218,7 @@ For production environments, you'll want more sophisticated configuration:
 class ActuatorConfiguration(
     private val actuatorProperties: ActuatorProperties
 ) {
-    
+
     @ConfigurationProperties(prefix = "app.actuator")
     data class ActuatorProperties(
         val enabled: Boolean = true,
@@ -226,7 +230,7 @@ class ActuatorConfiguration(
             val allowedIps: List<String> = emptyList(),
             val requireSsl: Boolean = false
         )
-        
+
         data class MetricsProperties(
             val export: ExportProperties = ExportProperties()
         ) {
@@ -239,7 +243,7 @@ class ActuatorConfiguration(
                     val step: Duration = Duration.ofMinutes(1),
                     val descriptions: Boolean = true
                 )
-                
+
                 data class JmxProperties(
                     val enabled: Boolean = false,
                     val domain: String = "metrics"
@@ -247,12 +251,12 @@ class ActuatorConfiguration(
             }
         }
     }
-    
+
     @Bean
     @ConditionalOnProperty(value = ["app.actuator.enabled"], havingValue = "true", matchIfMissing = true)
     fun actuatorCustomizer(): WebEndpointProperties.Exposure {
         val exposure = WebEndpointProperties.Exposure()
-        
+
         when {
             isProduction() -> {
                 // Minimal exposure in production
@@ -267,10 +271,10 @@ class ActuatorConfiguration(
                 exposure.include = setOf("*")
             }
         }
-        
+
         return exposure
     }
-    
+
     @Bean
     @ConditionalOnProperty(value = ["app.actuator.security.enabled"], havingValue = "true", matchIfMissing = true)
     fun actuatorIpFilter(): FilterRegistrationBean<ActuatorIpFilter> {
@@ -280,11 +284,11 @@ class ActuatorConfiguration(
         registration.order = Ordered.HIGHEST_PRECEDENCE
         return registration
     }
-    
-    private fun isProduction(): Boolean = 
+
+    private fun isProduction(): Boolean =
         System.getProperty("spring.profiles.active")?.contains("prod") == true
-    
-    private fun isStaging(): Boolean = 
+
+    private fun isStaging(): Boolean =
         System.getProperty("spring.profiles.active")?.contains("staging") == true
 }
 
@@ -292,9 +296,9 @@ class ActuatorConfiguration(
 class ActuatorIpFilter(
     private val allowedIps: List<String>
 ) : OncePerRequestFilter() {
-    
+
     private val logger = LoggerFactory.getLogger(ActuatorIpFilter::class.java)
-    
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -305,9 +309,9 @@ class ActuatorIpFilter(
             filterChain.doFilter(request, response)
             return
         }
-        
+
         val clientIp = getClientIpAddress(request)
-        
+
         if (isIpAllowed(clientIp)) {
             filterChain.doFilter(request, response)
         } else {
@@ -315,21 +319,21 @@ class ActuatorIpFilter(
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied")
         }
     }
-    
+
     private fun getClientIpAddress(request: HttpServletRequest): String {
         val xForwardedFor = request.getHeader("X-Forwarded-For")
         if (xForwardedFor != null && xForwardedFor.isNotEmpty()) {
             return xForwardedFor.split(",")[0].trim()
         }
-        
+
         val xRealIp = request.getHeader("X-Real-IP")
         if (xRealIp != null && xRealIp.isNotEmpty()) {
             return xRealIp
         }
-        
+
         return request.remoteAddr
     }
-    
+
     private fun isIpAllowed(ip: String): Boolean {
         return allowedIps.any { allowedIp ->
             when {
@@ -340,14 +344,14 @@ class ActuatorIpFilter(
             }
         }
     }
-    
+
     private fun isIpInCidr(ip: String, cidr: String): Boolean {
         // Simple CIDR implementation - you might want to use a library for production
         try {
             val parts = cidr.split("/")
             val networkIp = parts[0]
             val prefixLength = parts[1].toInt()
-            
+
             // This is a simplified implementation
             // Consider using Apache Commons Net or similar for production
             return ip.startsWith(networkIp.substringBeforeLast("."))
@@ -372,9 +376,9 @@ The health endpoint is crucial for monitoring application health:
 class DatabaseHealthIndicator(
     private val dataSource: DataSource
 ) : HealthIndicator {
-    
+
     private val logger = LoggerFactory.getLogger(DatabaseHealthIndicator::class.java)
-    
+
     override fun health(): Health {
         return try {
             dataSource.connection.use { connection ->
@@ -414,7 +418,7 @@ class DatabaseHealthIndicator(
             Health.down(ex).build()
         }
     }
-    
+
     private fun getConnectionPoolInfo(): Map<String, Any> {
         if (dataSource is HikariDataSource) {
             val hikariPool = dataSource.hikariPoolMXBean
@@ -427,7 +431,7 @@ class DatabaseHealthIndicator(
         }
         return mapOf("type" to dataSource.javaClass.simpleName)
     }
-    
+
     private fun measureResponseTime(connection: Connection): String {
         val startTime = System.currentTimeMillis()
         try {
@@ -444,9 +448,9 @@ class DatabaseHealthIndicator(
 class RedisHealthIndicator(
     private val redisTemplate: RedisTemplate<String, String>
 ) : HealthIndicator {
-    
+
     private val logger = LoggerFactory.getLogger(RedisHealthIndicator::class.java)
-    
+
     override fun health(): Health {
         return try {
             val startTime = System.currentTimeMillis()
@@ -454,7 +458,7 @@ class RedisHealthIndicator(
                 connection.ping()
             }
             val responseTime = System.currentTimeMillis() - startTime
-            
+
             if (ping == "PONG") {
                 Health.up()
                     .withDetail("redis", "Available")
@@ -473,7 +477,7 @@ class RedisHealthIndicator(
                 .build()
         }
     }
-    
+
     private fun getRedisConnectionInfo(): Map<String, Any?> {
         return try {
             redisTemplate.execute { connection: RedisConnection ->
@@ -496,13 +500,13 @@ class ExternalApiHealthIndicator(
     private val webClient: WebClient,
     @Value("\${app.external-api.health-check-url}") private val healthCheckUrl: String
 ) : HealthIndicator {
-    
+
     private val logger = LoggerFactory.getLogger(ExternalApiHealthIndicator::class.java)
-    
+
     override fun health(): Health {
         return try {
             val startTime = System.currentTimeMillis()
-            
+
             val response = webClient
                 .get()
                 .uri(healthCheckUrl)
@@ -510,9 +514,9 @@ class ExternalApiHealthIndicator(
                 .toBodilessEntity()
                 .timeout(Duration.ofSeconds(5))
                 .block()
-            
+
             val responseTime = System.currentTimeMillis() - startTime
-            
+
             if (response?.statusCode?.is2xxSuccessful == true) {
                 Health.up()
                     .withDetail("external_api", "Available")
@@ -548,11 +552,11 @@ class ApplicationHealthIndicator(
     private val cacheManager: CacheManager,
     private val taskExecutor: TaskExecutor
 ) : HealthIndicator {
-    
+
     override fun health(): Health {
         val details = mutableMapOf<String, Any>()
         var overallStatus = Status.UP
-        
+
         // Check cache status
         try {
             val cacheNames = cacheManager.cacheNames
@@ -564,7 +568,7 @@ class ApplicationHealthIndicator(
             details["cache"] = mapOf("error" to ex.message)
             overallStatus = Status.DOWN
         }
-        
+
         // Check thread pool status (if using ThreadPoolTaskExecutor)
         if (taskExecutor is ThreadPoolTaskExecutor) {
             val poolDetails = mapOf(
@@ -575,7 +579,7 @@ class ApplicationHealthIndicator(
                 "queue_size" to taskExecutor.threadPoolExecutor?.queue?.size
             )
             details["thread_pool"] = poolDetails
-            
+
             // Consider unhealthy if queue is too large
             val queueSize = taskExecutor.threadPoolExecutor?.queue?.size ?: 0
             if (queueSize > 100) { // Configurable threshold
@@ -583,7 +587,7 @@ class ApplicationHealthIndicator(
                 details["thread_pool_warning"] = "Queue size is high: $queueSize"
             }
         }
-        
+
         return Health.Builder(overallStatus)
             .withDetails(details)
             .build()
@@ -598,7 +602,7 @@ The metrics endpoint provides detailed application metrics:
 ```kotlin
 @Component
 class CustomMetricsConfiguration {
-    
+
     @Bean
     fun commonTags(
         @Value("\${spring.application.name}") applicationName: String,
@@ -612,7 +616,7 @@ class CustomMetricsConfiguration {
             )
         }
     }
-    
+
     @EventListener
     @Async
     fun handleApplicationEvent(event: ApplicationReadyEvent) {
@@ -627,19 +631,19 @@ class UserService(
     private val userRepository: UserRepository,
     private val meterRegistry: MeterRegistry
 ) {
-    
+
     private val userCreationCounter = Counter.builder("user.creation.total")
         .description("Total number of users created")
         .register(meterRegistry)
-    
+
     private val userCreationTimer = Timer.builder("user.creation.duration")
         .description("Time taken to create a user")
         .register(meterRegistry)
-    
+
     private val activeUsersGauge = Gauge.builder("user.active.count")
         .description("Number of active users")
         .register(meterRegistry) { userRepository.countByActiveTrue() }
-    
+
     fun createUser(request: CreateUserRequest): UserResponse {
         return userCreationTimer.recordCallable {
             try {
@@ -662,7 +666,7 @@ class UserService(
             }
         }!!
     }
-    
+
     private fun performUserCreation(request: CreateUserRequest): UserResponse {
         // Implementation details
         TODO("Implementation")
@@ -673,32 +677,32 @@ class UserService(
 @Aspect
 @Component
 class MetricsAspect(private val meterRegistry: MeterRegistry) {
-    
+
     @Around("@annotation(timed)")
     fun timeMethod(joinPoint: ProceedingJoinPoint, timed: Timed): Any? {
         val methodName = joinPoint.signature.name
         val className = joinPoint.signature.declaringType.simpleName
-        
+
         val timer = Timer.builder("method.execution.time")
             .description("Method execution time")
             .tag("class", className)
             .tag("method", methodName)
             .register(meterRegistry)
-        
+
         return timer.recordCallable { joinPoint.proceed() }
     }
-    
+
     @Around("@annotation(counted)")
     fun countMethod(joinPoint: ProceedingJoinPoint, counted: Counted): Any? {
         val methodName = joinPoint.signature.name
         val className = joinPoint.signature.declaringType.simpleName
-        
+
         val counter = Counter.builder("method.invocation.total")
             .description("Method invocation count")
             .tag("class", className)
             .tag("method", methodName)
             .register(meterRegistry)
-        
+
         return try {
             val result = joinPoint.proceed()
             counter.increment(Tags.of("status", "success"))
@@ -730,7 +734,7 @@ The info endpoint provides application information:
 ```kotlin
 @Component
 class CustomInfoContributor : InfoContributor {
-    
+
     override fun contribute(builder: Info.Builder) {
         builder
             .withDetail("application") {
@@ -764,13 +768,13 @@ class CustomInfoContributor : InfoContributor {
                 )
             }
     }
-    
+
     private fun getApplicationVersion(): String {
         // Try to read from manifest or properties
         val implementationVersion = javaClass.`package`?.implementationVersion
         return implementationVersion ?: "unknown"
     }
-    
+
     private fun getBuildTime(): String {
         // Try to read from build properties
         return try {
@@ -781,7 +785,7 @@ class CustomInfoContributor : InfoContributor {
             "unknown"
         }
     }
-    
+
     private fun getGitCommitInfo(): Map<String, String> {
         return try {
             val properties = Properties()
@@ -803,7 +807,7 @@ class CustomInfoContributor : InfoContributor {
 class BuildInfoContributor(
     private val buildProperties: BuildProperties? = null
 ) : InfoContributor {
-    
+
     override fun contribute(builder: Info.Builder) {
         buildProperties?.let { build ->
             builder.withDetail("build") {
@@ -825,7 +829,7 @@ class BuildInfoContributor(
 class GitInfoContributor(
     private val gitProperties: GitProperties? = null
 ) : InfoContributor {
-    
+
     override fun contribute(builder: Info.Builder) {
         gitProperties?.let { git ->
             builder.withDetail("git") {
@@ -849,7 +853,7 @@ The environment endpoint exposes configuration properties:
 ```kotlin
 @Component
 class EnvironmentPostProcessor : EnvironmentPostProcessor {
-    
+
     override fun postProcessEnvironment(
         environment: ConfigurableEnvironment,
         application: SpringApplication
@@ -859,7 +863,7 @@ class EnvironmentPostProcessor : EnvironmentPostProcessor {
             "app.environment.processor.enabled" to true,
             "app.environment.processor.timestamp" to Instant.now().toString()
         ))
-        
+
         environment.propertySources.addLast(customProperties)
     }
 }
@@ -867,14 +871,14 @@ class EnvironmentPostProcessor : EnvironmentPostProcessor {
 // Custom environment contributor
 @Component
 class CustomEnvironmentInfoContributor : InfoContributor {
-    
+
     @Autowired
     private lateinit var environment: Environment
-    
+
     override fun contribute(builder: Info.Builder) {
-        val profiles = environment.activeProfiles.takeIf { it.isNotEmpty() } 
+        val profiles = environment.activeProfiles.takeIf { it.isNotEmpty() }
             ?: environment.defaultProfiles
-        
+
         builder.withDetail("environment") {
             mapOf(
                 "active_profiles" to profiles.toList(),
@@ -883,13 +887,13 @@ class CustomEnvironmentInfoContributor : InfoContributor {
             )
         }
     }
-    
+
     private fun getConfigurationClasses(): List<String> {
         // This is a simplified implementation
         // In a real application, you might want to inspect the application context
         return listOf(
             "ActuatorConfiguration",
-            "SecurityConfiguration", 
+            "SecurityConfiguration",
             "DatabaseConfiguration"
         )
     }
@@ -913,7 +917,7 @@ class ApplicationStatsEndpoint(
     private val orderRepository: OrderRepository,
     private val cacheManager: CacheManager
 ) {
-    
+
     @ReadOperation
     fun getApplicationStats(): ApplicationStats {
         return ApplicationStats(
@@ -923,7 +927,7 @@ class ApplicationStatsEndpoint(
             systemStats = getSystemStats()
         )
     }
-    
+
     @ReadOperation
     fun getApplicationStats(@Selector period: String): ApplicationStats {
         val periodDays = when (period.toLowerCase()) {
@@ -932,10 +936,10 @@ class ApplicationStatsEndpoint(
             "monthly" -> 30
             else -> throw IllegalArgumentException("Invalid period. Use: daily, weekly, monthly")
         }
-        
+
         return getApplicationStatsForPeriod(periodDays)
     }
-    
+
     @WriteOperation
     fun refreshStats(): Map<String, Any> {
         // Trigger stats refresh
@@ -944,7 +948,7 @@ class ApplicationStatsEndpoint(
             "timestamp" to Instant.now()
         )
     }
-    
+
     @DeleteOperation
     fun clearStats(): Map<String, Any> {
         // Clear cached stats
@@ -953,7 +957,7 @@ class ApplicationStatsEndpoint(
             "timestamp" to Instant.now()
         )
     }
-    
+
     private fun getUserStats(): UserStats {
         return UserStats(
             totalUsers = userRepository.count(),
@@ -962,7 +966,7 @@ class ApplicationStatsEndpoint(
             newUsersThisWeek = userRepository.countUsersCreatedAfter(LocalDateTime.now().minusDays(7))
         )
     }
-    
+
     private fun getOrderStats(): OrderStats {
         return OrderStats(
             totalOrders = orderRepository.count(),
@@ -971,7 +975,7 @@ class ApplicationStatsEndpoint(
             totalRevenue = orderRepository.getTotalRevenue()
         )
     }
-    
+
     private fun getCacheStats(): CacheStats {
         val cacheStatistics = cacheManager.cacheNames.associate { cacheName ->
             val cache = cacheManager.getCache(cacheName)
@@ -984,18 +988,18 @@ class ApplicationStatsEndpoint(
                 mapOf("status" to "unavailable")
             }
         }
-        
+
         return CacheStats(
             availableCaches = cacheManager.cacheNames.size,
             cacheStatistics = cacheStatistics
         )
     }
-    
+
     private fun getSystemStats(): SystemStats {
         val runtime = Runtime.getRuntime()
         val memoryBean = ManagementFactory.getMemoryMXBean()
         val gcBeans = ManagementFactory.getGarbageCollectorMXBeans()
-        
+
         return SystemStats(
             heapMemoryUsage = memoryBean.heapMemoryUsage.let {
                 MemoryUsage(
@@ -1022,7 +1026,7 @@ class ApplicationStatsEndpoint(
             systemLoadAverage = ManagementFactory.getOperatingSystemMXBean().systemLoadAverage
         )
     }
-    
+
     private fun getApplicationStatsForPeriod(days: Int): ApplicationStats {
         // Implementation for period-specific stats
         val cutoffDate = LocalDateTime.now().minusDays(days.toLong())
@@ -1038,7 +1042,7 @@ class ApplicationStatsEndpoint(
             systemStats = getSystemStats()
         )
     }
-    
+
     private fun getCacheSize(cache: Cache): Int {
         // This is cache implementation specific
         return when (cache) {
@@ -1046,7 +1050,7 @@ class ApplicationStatsEndpoint(
             else -> -1 // Unknown size
         }
     }
-    
+
     private fun getCacheHitRatio(cache: Cache): Double {
         // This is cache implementation specific
         return when (cache) {
@@ -1125,9 +1129,9 @@ class ApplicationManagementWebEndpoint(
     private val cacheManager: CacheManager,
     private val taskScheduler: TaskScheduler
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(ApplicationManagementWebEndpoint::class.java)
-    
+
     @ReadOperation
     fun getManagementInfo(): ResponseEntity<ManagementInfo> {
         return ResponseEntity.ok(ManagementInfo(
@@ -1136,7 +1140,7 @@ class ApplicationManagementWebEndpoint(
             maintenanceMode = isMaintenanceModeEnabled()
         ))
     }
-    
+
     @WriteOperation
     fun clearCache(@Selector cacheName: String?): ResponseEntity<Map<String, Any>> {
         return try {
@@ -1177,38 +1181,38 @@ class ApplicationManagementWebEndpoint(
             ))
         }
     }
-    
+
     @WriteOperation
     fun enableMaintenanceMode(): ResponseEntity<Map<String, Any>> {
         // Implementation to enable maintenance mode
         System.setProperty("app.maintenance.enabled", "true")
-        
+
         return ResponseEntity.ok(mapOf(
             "status" to "success",
             "message" to "Maintenance mode enabled",
             "timestamp" to Instant.now()
         ))
     }
-    
+
     @DeleteOperation
     fun disableMaintenanceMode(): ResponseEntity<Map<String, Any>> {
         // Implementation to disable maintenance mode
         System.setProperty("app.maintenance.enabled", "false")
-        
+
         return ResponseEntity.ok(mapOf(
             "status" to "success",
             "message" to "Maintenance mode disabled",
             "timestamp" to Instant.now()
         ))
     }
-    
+
     private fun getCacheInfo(): Map<String, Any> {
         return mapOf(
             "available_caches" to cacheManager.cacheNames.toList(),
             "total_caches" to cacheManager.cacheNames.size
         )
     }
-    
+
     private fun getScheduledTasksInfo(): Map<String, Any> {
         // This is a simplified implementation
         // In practice, you'd want to track your scheduled tasks
@@ -1217,7 +1221,7 @@ class ApplicationManagementWebEndpoint(
             "status" to "running"
         )
     }
-    
+
     private fun isMaintenanceModeEnabled(): Boolean {
         return System.getProperty("app.maintenance.enabled", "false").toBoolean()
     }
@@ -1237,11 +1241,11 @@ Create health indicator groups for different purposes:
 ```kotlin
 @Configuration
 class HealthConfiguration {
-    
+
     @Bean
     fun healthContributorRegistry(): HealthContributorRegistry {
         val registry = DefaultHealthContributorRegistry()
-        
+
         // Group for infrastructure health
         registry.registerContributor("infrastructure", CompositeHealthContributor.fromMap(
             mapOf(
@@ -1250,7 +1254,7 @@ class HealthConfiguration {
                 "messaging" to RabbitMQHealthIndicator(rabbitTemplate)
             )
         ))
-        
+
         // Group for external services
         registry.registerContributor("external", CompositeHealthContributor.fromMap(
             mapOf(
@@ -1258,7 +1262,7 @@ class HealthConfiguration {
                 "notification-service" to ExternalServiceHealthIndicator("notification")
             )
         ))
-        
+
         return registry
     }
 }
@@ -1287,14 +1291,14 @@ Integration with monitoring systems:
 ```kotlin
 @Component
 class PrometheusMetricsCustomizer : MeterRegistryCustomizer<PrometheusMeterRegistry> {
-    
+
     override fun customize(registry: PrometheusMeterRegistry) {
         registry.config()
             .meterFilter(MeterFilter.deny { id ->
                 // Filter out sensitive metrics
                 val name = id.name
-                name.contains("password") || 
-                name.contains("secret") || 
+                name.contains("password") ||
+                name.contains("secret") ||
                 name.contains("key")
             })
             .meterFilter(MeterFilter.denyNameStartsWith("jvm.threads.states"))
@@ -1303,7 +1307,7 @@ class PrometheusMetricsCustomizer : MeterRegistryCustomizer<PrometheusMeterRegis
                 "version", getApplicationVersion()
             )
     }
-    
+
     private fun getApplicationVersion(): String {
         return javaClass.`package`?.implementationVersion ?: "unknown"
     }
@@ -1314,20 +1318,20 @@ class PrometheusMetricsCustomizer : MeterRegistryCustomizer<PrometheusMeterRegis
 class BusinessMetrics(
     private val meterRegistry: MeterRegistry
 ) {
-    
+
     private val orderTotalGauge = Gauge.builder("business.order.total")
         .description("Total order value")
         .register(meterRegistry, this) { getTotalOrderValue() }
-    
+
     private val activeUserGauge = Gauge.builder("business.users.active")
         .description("Number of active users")
         .register(meterRegistry, this) { getActiveUserCount() }
-    
+
     private fun getTotalOrderValue(): Double {
         // Implementation to get total order value
         return 0.0 // Placeholder
     }
-    
+
     private fun getActiveUserCount(): Double {
         // Implementation to get active user count
         return 0.0 // Placeholder
@@ -1354,40 +1358,40 @@ class AlertingService(
     private val alertingProperties: AlertingProperties,
     private val meterRegistry: MeterRegistry
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(AlertingService::class.java)
-    
+
     @EventListener
     fun handleMetricEvent(event: MeterRegistryEvent) {
         // Check thresholds and send alerts
         checkErrorRateThreshold()
         checkMemoryUsageThreshold()
     }
-    
+
     private fun checkErrorRateThreshold() {
         val errorRate = getErrorRate()
         if (errorRate > alertingProperties.thresholds.errorRate) {
             sendAlert("High error rate detected: ${errorRate * 100}%")
         }
     }
-    
+
     private fun checkMemoryUsageThreshold() {
         val memoryUsage = getMemoryUsagePercentage()
         if (memoryUsage > alertingProperties.thresholds.memoryUsage) {
             sendAlert("High memory usage detected: ${memoryUsage * 100}%")
         }
     }
-    
+
     private fun getErrorRate(): Double {
         // Calculate error rate from metrics
         return 0.0 // Placeholder
     }
-    
+
     private fun getMemoryUsagePercentage(): Double {
         // Calculate memory usage percentage
         return 0.0 // Placeholder
     }
-    
+
     private fun sendAlert(message: String) {
         logger.warn("ALERT: {}", message)
         // Implementation to send alert (email, Slack, PagerDuty, etc.)

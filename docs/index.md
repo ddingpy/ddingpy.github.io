@@ -1,88 +1,56 @@
 ---
 layout: default
-title: Home
-nav_order: 1
-description: "Documentation portal home page"
-permalink: /
+title: Contents
+has_toc: false
+nav_order: 10
 ---
 
-# Documentation Portal
-{: .fs-9 }
+# Welcome!
 
-Your comprehensive guide to getting started and mastering our platform.
+{% assign sorted_pages = site.pages | sort: 'date' | reverse %}
+{% assign doc_pages = sorted_pages %}
+
+## Books
+
+There are too many books!
 {: .fs-6 .fw-300 }
 
-[Get started now](#getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 } [View it on GitHub](https://github.com){: .btn .fs-5 .mb-4 .mb-md-0 }
+<ul>
+  {% for page in doc_pages %}
+    {% if page.url != "/" and page.url != "/feed.xml" and page.url != "/sitemap.xml" and page.dir contains '/books/' and page.is_index %}
+      <li>
+        <a href="{{ page.url | relative_url }}">{{ page.title }}</a>
+        {% if page.description %}
+          - {{ page.description | truncate: 80 }}
+        {% endif %}
+      </li>
+    {% endif %}
+  {% endfor %}
+</ul>
+
+## Articles
+
+There are too many articles!
+{: .fs-6 .fw-300 }
+
+<ul>
+  {% for page in doc_pages %}
+    {% assign last_name = page.name | slice: -3,3 %}
+    {% if page.url != "/" and page.url != "/feed.xml" and page.url != "/sitemap.xml" and page.dir contains 'articles' and last_name == '.md' %}
+      <li>
+        {% assign name_only_len = page.name.size | minus: 3 %}
+        {% assign name_only = page.name | slice: 0, name_only_len %}
+        <a href="{{ page.url | relative_url }}">{{ page.title | default: name_only }}</a>
+        {% if page.description %}
+          - {{ page.description | truncate: 80 }}
+        {% endif %}
+      </li>
+    {% endif %}
+  {% endfor %}
+</ul>
 
 ---
 
-## Getting Started
-
-Welcome to our documentation! This portal contains everything you need to successfully use our platform.
-
-### Quick Links
-
-- 📖 **[Installation Guide2](installation/)** - Get up and running in minutes
-- 🚀 **[Quick Start Tutorial](quickstart/)** - Learn the basics
-- 📚 **[User Guide](guide/)** - Detailed documentation
-- 🔧 **[API Reference](api/)** - Complete API documentation
-- ❓ **[FAQ](faq/)** - Frequently asked questions
-
-## What's New
-
-### Version 2.0 Released
-{: .d-inline-block }
-
-New
-{: .label .label-green }
-
-We've released version 2.0 with exciting new features including improved performance, new API endpoints, and enhanced security.
-
-### Documentation Updates
-{: .d-inline-block }
-
-Updated
-{: .label .label-blue }
-
-Our documentation has been completely refreshed with new examples, better organization, and improved search functionality.
-
-## Features
-
-| Feature | Description |
-|:--------|:------------|
-| **Easy Installation** | Simple setup process with clear instructions |
-| **Comprehensive Guides** | Step-by-step tutorials for all skill levels |
-| **API Documentation** | Complete reference with examples |
-| **Search Functionality** | Quickly find what you need |
-| **Regular Updates** | Documentation kept current with latest releases |
-
-## Popular Topics
-
-- [Authentication Setup](guide/authentication/)
-- [Configuration Options](guide/configuration/)
-- [Troubleshooting Common Issues](troubleshooting/)
-- [Best Practices](guide/best-practices/)
-- [Migration Guide](guide/migration/)
-
-## Contributing
-
-We welcome contributions to our documentation! If you find errors or have suggestions for improvements:
-
-1. Fork the repository
-2. Make your changes
-3. Submit a pull request
-
-See our [Contributing Guide](contributing/) for more details.
-
-## Support
-
-Need help? Here are ways to get support:
-
-- 📧 **Email**: support@example.com
-- 💬 **Chat**: Available in the dashboard
-- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/yourrepository/issues)
-- 👥 **Community**: [Discussion Forum](https://forum.example.com)
-
----
-
-<small>Last updated: {{ site.time | date: "%B %d, %Y" }}</small>
+<div class="fs-2 text-grey-dk-000">
+  <em>Note: Update dates are based on when pages were last modified. For more accurate tracking, ensure your documentation pages include a `date` field in their front matter.</em>
+</div>

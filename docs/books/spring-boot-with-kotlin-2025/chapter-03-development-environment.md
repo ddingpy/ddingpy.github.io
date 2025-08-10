@@ -1,7 +1,12 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
+
 # Chapter 03: Setting Up the Development Environment
+- TOC
+{:toc}
 
 Getting your development environment right from the start will save you countless hours of frustration. In this chapter, we'll walk through setting up a professional Kotlin and Spring Boot development environment that will serve you well throughout your journey.
 
@@ -344,19 +349,19 @@ dependencies {
     // Spring Boot starters
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    
+
     // Kotlin specific
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    
+
     // Kotlin coroutines for async
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-    
+
     // Development tools
     developmentOnly("org.springframework.boot:spring-boot-devtools")
-    
+
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.mockk:mockk:1.13.8")

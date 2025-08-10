@@ -1,7 +1,11 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
 # Chapter 04: Developing a Spring Boot Application
+- TOC
+{:toc}
 
 It's time to write code! In this chapter, we'll create our first Spring Boot application with Kotlin, explore the project structure, understand build configuration, and get our "Hello World" running. By the end, you'll have a solid foundation for building real applications.
 
@@ -289,40 +293,40 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-cache")
-    
+
     // Kotlin Support
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    
+
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${property("kotlinCoroutinesVersion")}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${property("kotlinCoroutinesVersion")}")
-    
+
     // Database
     implementation("org.postgresql:postgresql")
     implementation("org.flywaydb:flyway-core")  // Database migrations
-    
+
     // Caching
     implementation("com.github.ben-manes.caffeine:caffeine")
-    
+
     // API Documentation
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
-    
+
     // Utilities
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     implementation("org.apache.commons:commons-lang3:3.14.0")
-    
+
     // Development Only
     developmentOnly("org.springframework.boot:spring-boot-devtools")
-    
+
     // Annotation Processing
     kapt("org.springframework.boot:spring-boot-configuration-processor")
-    
+
     // Runtime Only
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")  // Metrics
     runtimeOnly("com.h2database:h2")  // In-memory database for development
-    
+
     // Test Dependencies
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.mockito", module = "mockito-core")
@@ -359,11 +363,11 @@ tasks.withType<Test> {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         showStandardStreams = false
     }
-    
+
     // Memory settings for tests
     maxHeapSize = "1G"
     jvmArgs = listOf("-XX:MaxPermSize=256m")
-    
+
     // Parallel test execution
     systemProperty("junit.jupiter.execution.parallel.enabled", "true")
     systemProperty("junit.jupiter.execution.parallel.mode.default", "concurrent")
@@ -400,7 +404,7 @@ ktlint {
     outputToConsole.set(true)
     outputColorName.set("RED")
     ignoreFailures.set(false)
-    
+
     filter {
         exclude("**/generated/**")
         include("**/kotlin/**")
@@ -464,7 +468,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api")
 class HelloController {
-    
+
     @GetMapping("/hello")
     fun hello(): String {
         return "Hello, World!"
@@ -486,14 +490,14 @@ private val logger = KotlinLogging.logger {}
 @RestController
 @RequestMapping("/api")
 class HelloController {
-    
+
     // Simple text response
     @GetMapping("/hello")
     fun hello(): String {
         logger.info { "Hello endpoint called" }
         return "Hello, World from Kotlin and Spring Boot!"
     }
-    
+
     // JSON response with data class
     @GetMapping("/greeting")
     fun greeting(@RequestParam(defaultValue = "Guest") name: String): GreetingResponse {
@@ -504,7 +508,7 @@ class HelloController {
             kotlin = true
         )
     }
-    
+
     // Path variable example
     @GetMapping("/hello/{name}")
     fun personalizedHello(@PathVariable name: String): Map<String, String> {
@@ -514,7 +518,7 @@ class HelloController {
             "framework" to "Spring Boot"
         )
     }
-    
+
     // POST endpoint with request body
     @PostMapping("/message")
     fun receiveMessage(@RequestBody message: MessageRequest): MessageResponse {
@@ -635,7 +639,7 @@ Headers: Accept: application/json
 ```
 Method: POST
 URL: http://localhost:8080/api/message
-Headers: 
+Headers:
   Content-Type: application/json
 Body:
 {
@@ -666,40 +670,40 @@ private val logger = KotlinLogging.logger {}
 class GreetingController(
     private val greetingService: GreetingService  // Dependency injection
 ) {
-    
+
     // Using ResponseEntity for more control
     @GetMapping("/greetings/{id}")
     fun getGreeting(@PathVariable id: String): ResponseEntity<Greeting> {
         logger.debug { "Fetching greeting with id: $id" }
-        
+
         return greetingService.findById(id)
             ?.let { ResponseEntity.ok(it) }
             ?: throw ResponseStatusException(
-                HttpStatus.NOT_FOUND, 
+                HttpStatus.NOT_FOUND,
                 "Greeting not found with id: $id"
             )
     }
-    
+
     // Using sealed classes for responses
     @PostMapping("/greetings")
     fun createGreeting(@RequestBody request: CreateGreetingRequest): ResponseEntity<*> {
         logger.info { "Creating new greeting: ${request.message}" }
-        
+
         return when (val result = greetingService.create(request)) {
             is GreetingResult.Success -> ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(result.greeting)
-            
+
             is GreetingResult.ValidationError -> ResponseEntity
                 .badRequest()
                 .body(ErrorResponse(result.errors))
-            
+
             is GreetingResult.Duplicate -> ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(ErrorResponse(listOf("Greeting already exists")))
         }
     }
-    
+
     // Pagination support
     @GetMapping("/greetings")
     fun listGreetings(
@@ -708,7 +712,7 @@ class GreetingController(
         @RequestParam(required = false) language: String?
     ): PagedResponse<Greeting> {
         logger.debug { "Listing greetings - page: $page, size: $size, language: $language" }
-        
+
         val greetings = greetingService.findAll(page, size, language)
         return PagedResponse(
             content = greetings.content,
@@ -718,24 +722,24 @@ class GreetingController(
             totalPages = greetings.totalPages
         )
     }
-    
+
     // Async endpoint with coroutines
     @GetMapping("/greetings/random")
     suspend fun getRandomGreeting(): Greeting {
         logger.debug { "Fetching random greeting" }
         return greetingService.getRandomGreeting()
     }
-    
+
     // File upload example
     @PostMapping("/greetings/import")
     fun importGreetings(
         @RequestParam("file") file: MultipartFile
     ): ImportResponse {
         logger.info { "Importing greetings from file: ${file.originalFilename}" }
-        
+
         require(!file.isEmpty) { "File must not be empty" }
         require(file.contentType == "text/csv") { "File must be CSV format" }
-        
+
         val imported = greetingService.importFromCsv(file.inputStream)
         return ImportResponse(
             imported = imported,
@@ -750,45 +754,45 @@ class GreetingService(
     private val repository: GreetingRepository
 ) {
     fun findById(id: String): Greeting? = repository.findById(id).orElse(null)
-    
+
     fun create(request: CreateGreetingRequest): GreetingResult {
         // Validation
         if (request.message.isBlank()) {
             return GreetingResult.ValidationError(listOf("Message cannot be blank"))
         }
-        
+
         // Check for duplicates
         if (repository.existsByMessage(request.message)) {
             return GreetingResult.Duplicate
         }
-        
+
         val greeting = Greeting(
             id = UUID.randomUUID().toString(),
             message = request.message,
             language = request.language ?: "en",
             createdAt = Instant.now()
         )
-        
+
         return GreetingResult.Success(repository.save(greeting))
     }
-    
+
     fun findAll(page: Int, size: Int, language: String?): Page<Greeting> {
         val pageable = PageRequest.of(page, size, Sort.by("createdAt").descending())
-        
+
         return if (language != null) {
             repository.findByLanguage(language, pageable)
         } else {
             repository.findAll(pageable)
         }
     }
-    
+
     suspend fun getRandomGreeting(): Greeting = withContext(Dispatchers.IO) {
         repository.findRandomGreeting() ?: throw ResponseStatusException(
             HttpStatus.NOT_FOUND,
             "No greetings available"
         )
     }
-    
+
     fun importFromCsv(inputStream: InputStream): Int {
         // CSV parsing logic here
         return 0
@@ -838,7 +842,7 @@ sealed class GreetingResult {
 interface GreetingRepository : JpaRepository<Greeting, String> {
     fun existsByMessage(message: String): Boolean
     fun findByLanguage(language: String, pageable: Pageable): Page<Greeting>
-    
+
     @Query("SELECT g FROM Greeting g ORDER BY RANDOM() LIMIT 1")
     fun findRandomGreeting(): Greeting?
 }
@@ -851,21 +855,21 @@ interface GreetingRepository : JpaRepository<Greeting, String> {
 spring:
   application:
     name: my-first-app
-  
+
   jackson:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null
     serialization:
       write-dates-as-timestamps: false
       indent-output: true  # Pretty print in development
-  
+
   web:
     locale: en_US
     resources:
       add-mappings: true
       cache:
         period: 3600
-  
+
 server:
   port: 8080
   error:
@@ -873,11 +877,11 @@ server:
     include-binding-errors: always
     include-stacktrace: on_param
     include-exception: false
-  
+
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
-  
+
 logging:
   level:
     com.example.myfirstapp: DEBUG
@@ -885,7 +889,7 @@ logging:
     org.hibernate.SQL: DEBUG
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
-  
+
 management:
   endpoints:
     web:

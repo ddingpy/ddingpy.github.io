@@ -1,7 +1,11 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
 # Chapter 12: Server-to-Server Communication
+- TOC
+{:toc}
 
 Modern applications rarely operate in isolation. They need to communicate with external APIs, microservices, payment processors, notification services, and countless other systems. In this chapter, we'll explore the various approaches Spring Boot provides for server-to-server communication and how to implement them effectively in Kotlin.
 
@@ -18,7 +22,7 @@ While RestTemplate is now in maintenance mode, it's still widely used in many ap
 ```kotlin
 @Configuration
 class RestTemplateConfiguration {
-    
+
     @Bean
     @Primary
     fun restTemplate(restTemplateBuilder: RestTemplateBuilder): RestTemplate {
@@ -43,7 +47,7 @@ class RestTemplateConfiguration {
             .errorHandler(CustomErrorHandler())
             .build()
     }
-    
+
     @Bean
     @Qualifier("externalApiRestTemplate")
     fun externalApiRestTemplate(restTemplateBuilder: RestTemplateBuilder): RestTemplate {
@@ -54,9 +58,9 @@ class RestTemplateConfiguration {
             .additionalInterceptors(ExternalApiInterceptor())
             .build()
     }
-    
+
     @Bean
-    @Qualifier("paymentServiceRestTemplate") 
+    @Qualifier("paymentServiceRestTemplate")
     fun paymentServiceRestTemplate(
         restTemplateBuilder: RestTemplateBuilder,
         @Value("\${app.payment-service.api-key}") apiKey: String
@@ -72,55 +76,55 @@ class RestTemplateConfiguration {
 
 // Custom interceptors
 class LoggingInterceptor : ClientHttpRequestInterceptor {
-    
+
     private val logger = LoggerFactory.getLogger(LoggingInterceptor::class.java)
-    
+
     override fun intercept(
         request: HttpRequest,
         body: ByteArray,
         execution: ClientHttpRequestExecution
     ): ClientHttpResponse {
-        
+
         val startTime = System.currentTimeMillis()
-        
+
         logger.debug("HTTP {} {}", request.method, request.uri)
         if (body.isNotEmpty() && logger.isTraceEnabled) {
             logger.trace("Request body: {}", String(body, StandardCharsets.UTF_8))
         }
-        
+
         val response = execution.execute(request, body)
         val duration = System.currentTimeMillis() - startTime
-        
+
         logger.debug(
-            "HTTP {} {} -> {} in {}ms", 
-            request.method, 
-            request.uri, 
+            "HTTP {} {} -> {} in {}ms",
+            request.method,
+            request.uri,
             response.statusCode,
             duration
         )
-        
+
         return response
     }
 }
 
 class RetryInterceptor : ClientHttpRequestInterceptor {
-    
+
     private val logger = LoggerFactory.getLogger(RetryInterceptor::class.java)
     private val maxRetries = 3
     private val retryDelay = Duration.ofSeconds(1)
-    
+
     override fun intercept(
         request: HttpRequest,
         body: ByteArray,
         execution: ClientHttpRequestExecution
     ): ClientHttpResponse {
-        
+
         var lastException: Exception? = null
-        
+
         repeat(maxRetries) { attempt ->
             try {
                 val response = execution.execute(request, body)
-                
+
                 // Retry on server errors (5xx) but not client errors (4xx)
                 if (response.statusCode.is5xxServerError && attempt < maxRetries - 1) {
                     logger.warn(
@@ -132,12 +136,12 @@ class RetryInterceptor : ClientHttpRequestInterceptor {
                     Thread.sleep(retryDelay.toMillis())
                     return@repeat
                 }
-                
+
                 return response
-                
+
             } catch (ex: ResourceAccessException) {
                 lastException = ex
-                
+
                 if (attempt < maxRetries - 1) {
                     logger.warn("Attempt {} failed with network error, retrying in {}ms", attempt + 1, retryDelay.toMillis(), ex)
                     Thread.sleep(retryDelay.toMillis())
@@ -146,19 +150,19 @@ class RetryInterceptor : ClientHttpRequestInterceptor {
                 }
             }
         }
-        
+
         throw lastException ?: RuntimeException("All retry attempts failed")
     }
 }
 
 class ApiKeyInterceptor(private val apiKey: String) : ClientHttpRequestInterceptor {
-    
+
     override fun intercept(
         request: HttpRequest,
         body: ByteArray,
         execution: ClientHttpRequestExecution
     ): ClientHttpResponse {
-        
+
         request.headers.add("X-API-Key", apiKey)
         return execution.execute(request, body)
     }
@@ -166,19 +170,19 @@ class ApiKeyInterceptor(private val apiKey: String) : ClientHttpRequestIntercept
 
 // Custom error handler
 class CustomErrorHandler : ResponseErrorHandler {
-    
+
     private val logger = LoggerFactory.getLogger(CustomErrorHandler::class.java)
-    
+
     override fun hasError(response: ClientHttpResponse): Boolean {
         return response.statusCode.isError
     }
-    
+
     override fun handleError(response: ClientHttpResponse) {
         val statusCode = response.statusCode
         val responseBody = response.body.bufferedReader().use { it.readText() }
-        
+
         logger.error("HTTP error: {} - {}", statusCode, responseBody)
-        
+
         when {
             statusCode.is4xxClientError -> {
                 when (statusCode) {
@@ -209,17 +213,17 @@ class UserApiService(
     private val meterRegistry: MeterRegistry,
     @Value("\${app.external.user-service.base-url}") private val baseUrl: String
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(UserApiService::class.java)
-    
+
     private val userApiTimer = Timer.builder("user.api.request.duration")
         .description("Time taken for user API requests")
         .register(meterRegistry)
-    
+
     private val userApiCounter = Counter.builder("user.api.request.total")
         .description("Total user API requests")
         .register(meterRegistry)
-    
+
     /**
      * Get user by ID with comprehensive error handling
      */
@@ -228,37 +232,37 @@ class UserApiService(
             try {
                 val url = "$baseUrl/api/users/{userId}"
                 val response = restTemplate.getForEntity(url, UserDto::class.java, userId)
-                
+
                 userApiCounter.increment(Tags.of(
                     "operation", "getUser",
                     "status", "success"
                 ))
-                
+
                 logger.debug("Successfully retrieved user {}", userId)
                 response.body
-                
+
             } catch (ex: HttpClientErrorException.NotFound) {
                 userApiCounter.increment(Tags.of(
                     "operation", "getUser",
                     "status", "not_found"
                 ))
-                
+
                 logger.debug("User {} not found", userId)
                 null
-                
+
             } catch (ex: Exception) {
                 userApiCounter.increment(Tags.of(
                     "operation", "getUser",
                     "status", "error",
                     "error_type", ex.javaClass.simpleName
                 ))
-                
+
                 logger.error("Failed to retrieve user {}", userId, ex)
                 throw ExternalServiceException("User service", "getUser", ex.message ?: "Unknown error", ex)
             }
         }
     }
-    
+
     /**
      * Create a new user
      */
@@ -267,38 +271,38 @@ class UserApiService(
             try {
                 val url = "$baseUrl/api/users"
                 val response = restTemplate.postForEntity(url, createUserRequest, UserDto::class.java)
-                
+
                 userApiCounter.increment(Tags.of(
                     "operation", "createUser",
                     "status", "success"
                 ))
-                
+
                 logger.info("Successfully created user: {}", response.body?.id)
                 response.body ?: throw IllegalStateException("Created user response body is null")
-                
+
             } catch (ex: HttpClientErrorException.BadRequest) {
                 userApiCounter.increment(Tags.of(
                     "operation", "createUser",
                     "status", "bad_request"
                 ))
-                
+
                 val errorBody = ex.responseBodyAsString
                 logger.warn("Bad request when creating user: {}", errorBody)
                 throw ValidationException("User creation failed", parseValidationErrors(errorBody))
-                
+
             } catch (ex: Exception) {
                 userApiCounter.increment(Tags.of(
-                    "operation", "createUser", 
+                    "operation", "createUser",
                     "status", "error",
                     "error_type", ex.javaClass.simpleName
                 ))
-                
+
                 logger.error("Failed to create user", ex)
                 throw ExternalServiceException("User service", "createUser", ex.message ?: "Unknown error", ex)
             }
         }!!
     }
-    
+
     /**
      * Update an existing user
      */
@@ -307,7 +311,7 @@ class UserApiService(
             try {
                 val url = "$baseUrl/api/users/{userId}"
                 val requestEntity = HttpEntity(updateUserRequest, createHeaders())
-                
+
                 val response = restTemplate.exchange(
                     url,
                     HttpMethod.PUT,
@@ -315,37 +319,37 @@ class UserApiService(
                     UserDto::class.java,
                     userId
                 )
-                
+
                 userApiCounter.increment(Tags.of(
                     "operation", "updateUser",
                     "status", "success"
                 ))
-                
+
                 logger.info("Successfully updated user {}", userId)
                 response.body ?: throw IllegalStateException("Updated user response body is null")
-                
+
             } catch (ex: HttpClientErrorException.NotFound) {
                 userApiCounter.increment(Tags.of(
                     "operation", "updateUser",
                     "status", "not_found"
                 ))
-                
+
                 logger.debug("User {} not found for update", userId)
                 throw ResourceNotFoundException("User not found with ID: $userId")
-                
+
             } catch (ex: Exception) {
                 userApiCounter.increment(Tags.of(
                     "operation", "updateUser",
                     "status", "error",
                     "error_type", ex.javaClass.simpleName
                 ))
-                
+
                 logger.error("Failed to update user {}", userId, ex)
                 throw ExternalServiceException("User service", "updateUser", ex.message ?: "Unknown error", ex)
             }
         }!!
     }
-    
+
     /**
      * Get users with pagination
      */
@@ -355,21 +359,21 @@ class UserApiService(
                 val uriBuilder = UriComponentsBuilder.fromHttpUrl("$baseUrl/api/users")
                     .queryParam("page", page)
                     .queryParam("size", size)
-                
+
                 sort?.let { uriBuilder.queryParam("sort", it) }
-                
+
                 val response = restTemplate.getForEntity(
                     uriBuilder.toUriString(),
                     PagedUserResponse::class.java
                 )
-                
+
                 userApiCounter.increment(Tags.of(
                     "operation", "getUsers",
                     "status", "success"
                 ))
-                
+
                 logger.debug("Successfully retrieved {} users", response.body?.content?.size ?: 0)
-                
+
                 val pagedResponse = response.body ?: throw IllegalStateException("Paged response body is null")
                 PagedResponse(
                     content = pagedResponse.content,
@@ -380,20 +384,20 @@ class UserApiService(
                     first = pagedResponse.first,
                     last = pagedResponse.last
                 )
-                
+
             } catch (ex: Exception) {
                 userApiCounter.increment(Tags.of(
                     "operation", "getUsers",
                     "status", "error",
                     "error_type", ex.javaClass.simpleName
                 ))
-                
+
                 logger.error("Failed to retrieve users", ex)
                 throw ExternalServiceException("User service", "getUsers", ex.message ?: "Unknown error", ex)
             }
         }!!
     }
-    
+
     /**
      * Delete a user
      */
@@ -402,43 +406,43 @@ class UserApiService(
             try {
                 val url = "$baseUrl/api/users/{userId}"
                 restTemplate.delete(url, userId)
-                
+
                 userApiCounter.increment(Tags.of(
                     "operation", "deleteUser",
                     "status", "success"
                 ))
-                
+
                 logger.info("Successfully deleted user {}", userId)
                 true
-                
+
             } catch (ex: HttpClientErrorException.NotFound) {
                 userApiCounter.increment(Tags.of(
                     "operation", "deleteUser",
                     "status", "not_found"
                 ))
-                
+
                 logger.debug("User {} not found for deletion", userId)
                 false
-                
+
             } catch (ex: Exception) {
                 userApiCounter.increment(Tags.of(
                     "operation", "deleteUser",
                     "status", "error",
                     "error_type", ex.javaClass.simpleName
                 ))
-                
+
                 logger.error("Failed to delete user {}", userId, ex)
                 throw ExternalServiceException("User service", "deleteUser", ex.message ?: "Unknown error", ex)
             }
         }!!
     }
-    
+
     private fun createHeaders(): HttpHeaders {
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_JSON
         return headers
     }
-    
+
     private fun parseValidationErrors(errorBody: String): List<ValidationError> {
         return try {
             val objectMapper = jacksonObjectMapper()
@@ -527,9 +531,9 @@ abstract class BaseApiClient(
     protected val baseUrl: String,
     protected val meterRegistry: MeterRegistry
 ) {
-    
+
     protected val logger = LoggerFactory.getLogger(this::class.java)
-    
+
     protected inline fun <reified T> get(
         path: String,
         vararg uriVariables: Any,
@@ -538,7 +542,7 @@ abstract class BaseApiClient(
         return executeWithMetrics("GET", path) {
             val uriBuilder = UriComponentsBuilder.fromHttpUrl("$baseUrl$path")
             parameters.forEach { (key, value) -> uriBuilder.queryParam(key, value) }
-            
+
             val response = restTemplate.getForEntity(
                 uriBuilder.toUriString(),
                 T::class.java,
@@ -547,7 +551,7 @@ abstract class BaseApiClient(
             response.body
         }
     }
-    
+
     protected inline fun <reified T> post(
         path: String,
         body: Any,
@@ -563,7 +567,7 @@ abstract class BaseApiClient(
             response.body
         }
     }
-    
+
     protected inline fun <reified T> put(
         path: String,
         body: Any,
@@ -581,14 +585,14 @@ abstract class BaseApiClient(
             response.body
         }
     }
-    
+
     protected fun delete(path: String, vararg uriVariables: Any): Boolean {
         return executeWithMetrics("DELETE", path) {
             restTemplate.delete("$baseUrl$path", *uriVariables)
             true
         } ?: false
     }
-    
+
     private fun <T> executeWithMetrics(method: String, path: String, operation: () -> T): T? {
         val timer = Timer.builder("api.client.request.duration")
             .description("API client request duration")
@@ -596,14 +600,14 @@ abstract class BaseApiClient(
             .tag("path", path)
             .tag("service", getServiceName())
             .register(meterRegistry)
-        
+
         val counter = Counter.builder("api.client.request.total")
             .description("Total API client requests")
             .tag("method", method)
             .tag("path", path)
             .tag("service", getServiceName())
             .register(meterRegistry)
-        
+
         return timer.recordCallable {
             try {
                 val result = operation()
@@ -618,9 +622,9 @@ abstract class BaseApiClient(
             }
         }
     }
-    
+
     protected abstract fun getServiceName(): String
-    
+
     protected fun createHeaders(): HttpHeaders {
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_JSON
@@ -635,21 +639,21 @@ class PaymentApiClient(
     @Value("\${app.payment-service.base-url}") baseUrl: String,
     meterRegistry: MeterRegistry
 ) : BaseApiClient(restTemplate, baseUrl, meterRegistry) {
-    
+
     override fun getServiceName(): String = "payment-service"
-    
+
     fun processPayment(paymentRequest: PaymentRequest): PaymentResponse? {
         return post("/api/payments", paymentRequest)
     }
-    
+
     fun getPayment(paymentId: String): PaymentResponse? {
         return get("/api/payments/{paymentId}", paymentId)
     }
-    
+
     fun refundPayment(paymentId: String, refundRequest: RefundRequest): RefundResponse? {
         return post("/api/payments/{paymentId}/refund", refundRequest, paymentId)
     }
-    
+
     fun getPaymentsByUser(userId: Long, page: Int = 0, size: Int = 20): PagedResponse<PaymentResponse>? {
         return get(
             "/api/payments/user/{userId}",
@@ -712,7 +716,7 @@ WebClient is the modern, reactive HTTP client in Spring Boot. When combined with
 ```kotlin
 @Configuration
 class WebClientConfiguration {
-    
+
     @Bean
     @Primary
     fun webClient(webClientBuilder: WebClient.Builder): WebClient {
@@ -744,7 +748,7 @@ class WebClientConfiguration {
             .filter(retryFilter())
             .build()
     }
-    
+
     @Bean
     @Qualifier("userServiceWebClient")
     fun userServiceWebClient(
@@ -758,7 +762,7 @@ class WebClientConfiguration {
             .filter(authenticationFilter())
             .build()
     }
-    
+
     @Bean
     @Qualifier("paymentServiceWebClient")
     fun paymentServiceWebClient(
@@ -778,7 +782,7 @@ class WebClientConfiguration {
             )
             .build()
     }
-    
+
     private fun logRequest(): ExchangeFilterFunction {
         return ExchangeFilterFunction.ofRequestProcessor { request ->
             LoggerFactory.getLogger("WebClient.Request")
@@ -786,7 +790,7 @@ class WebClientConfiguration {
             Mono.just(request)
         }
     }
-    
+
     private fun logResponse(): ExchangeFilterFunction {
         return ExchangeFilterFunction.ofResponseProcessor { response ->
             LoggerFactory.getLogger("WebClient.Response")
@@ -794,7 +798,7 @@ class WebClientConfiguration {
             Mono.just(response)
         }
     }
-    
+
     private fun retryFilter(): ExchangeFilterFunction {
         return ExchangeFilterFunction.ofRequestProcessor { request ->
             Mono.just(request)
@@ -806,7 +810,7 @@ class WebClientConfiguration {
             }
         })
     }
-    
+
     private fun authenticationFilter(): ExchangeFilterFunction {
         return ExchangeFilterFunction.ofRequestProcessor { request ->
             // Add authentication logic here
@@ -817,7 +821,7 @@ class WebClientConfiguration {
             Mono.just(modifiedRequest)
         }
     }
-    
+
     private fun getAuthToken(): String {
         // Implementation to get auth token
         return "sample-token"
@@ -833,9 +837,9 @@ class ReactiveUserService(
     @Qualifier("userServiceWebClient") private val webClient: WebClient,
     private val meterRegistry: MeterRegistry
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(ReactiveUserService::class.java)
-    
+
     /**
      * Get user by ID using coroutines
      */
@@ -862,7 +866,7 @@ class ReactiveUserService(
             }
         }
     }
-    
+
     /**
      * Get multiple users concurrently
      */
@@ -891,7 +895,7 @@ class ReactiveUserService(
             }
         }
     }
-    
+
     /**
      * Create user with comprehensive error handling
      */
@@ -925,7 +929,7 @@ class ReactiveUserService(
             }
         }
     }
-    
+
     /**
      * Update user with optimistic updates
      */
@@ -966,7 +970,7 @@ class ReactiveUserService(
             }
         }
     }
-    
+
     /**
      * Get users with pagination using reactive streams
      */
@@ -1005,7 +1009,7 @@ class ReactiveUserService(
             }
         }
     }
-    
+
     /**
      * Delete user with confirmation
      */
@@ -1035,7 +1039,7 @@ class ReactiveUserService(
             }
         }
     }
-    
+
     /**
      * Batch operations with flow control
      */
@@ -1043,7 +1047,7 @@ class ReactiveUserService(
         return withContext(Dispatchers.IO) {
             val results = mutableListOf<UserDto>()
             val failures = mutableListOf<BatchFailure>()
-            
+
             // Process in batches to avoid overwhelming the server
             createUserRequests.chunked(10).forEach { batch ->
                 val batchResults = batch.mapIndexed { index, request ->
@@ -1056,7 +1060,7 @@ class ReactiveUserService(
                         }
                     }
                 }.awaitAll()
-                
+
                 batchResults.forEach { result ->
                     when (result) {
                         is BatchSuccess -> results.add(result.data)
@@ -1069,11 +1073,11 @@ class ReactiveUserService(
                         )
                     }
                 }
-                
+
                 // Small delay between batches to be nice to the external service
                 delay(100)
             }
-            
+
             BatchResult(
                 successful = results,
                 failed = failures,
@@ -1081,7 +1085,7 @@ class ReactiveUserService(
             )
         }
     }
-    
+
     private suspend inline fun <T> recordMetric(
         operation: String,
         status: String,
@@ -1092,20 +1096,20 @@ class ReactiveUserService(
             .description("User service request duration")
             .tag("operation", operation)
             .register(meterRegistry)
-        
+
         val counter = Counter.builder("user.service.request.total")
             .description("Total user service requests")
             .tag("operation", operation)
             .register(meterRegistry)
-        
+
         val start = System.currentTimeMillis()
         return try {
             val result = block()
             val duration = System.currentTimeMillis() - start
-            
+
             timer.record(duration, TimeUnit.MILLISECONDS)
             counter.increment(Tags.of("status", status))
-            
+
             result
         } catch (ex: Exception) {
             val duration = System.currentTimeMillis() - start
@@ -1149,9 +1153,9 @@ class CircuitBreakerWebClientService(
     private val webClient: WebClient,
     private val meterRegistry: MeterRegistry
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(CircuitBreakerWebClientService::class.java)
-    
+
     // Circuit breaker configuration
     private val circuitBreaker = CircuitBreaker.ofDefaults("external-api").apply {
         eventPublisher.onStateTransition { event ->
@@ -1163,7 +1167,7 @@ class CircuitBreakerWebClientService(
             ).increment()
         }
     }
-    
+
     /**
      * Make HTTP request with circuit breaker protection
      */
@@ -1178,7 +1182,7 @@ class CircuitBreakerWebClientService(
                 val decoratedSupplier = CircuitBreaker.decorateSupplier(circuitBreaker) {
                     runBlocking { request() }
                 }
-                
+
                 decoratedSupplier.get()
             } catch (ex: CallNotPermittedException) {
                 logger.warn("Circuit breaker is OPEN, executing fallback for operation: {}", operation)
@@ -1191,14 +1195,14 @@ class CircuitBreakerWebClientService(
             }
         }
     }
-    
+
     /**
      * Get user with circuit breaker and fallback
      */
     suspend fun getUserWithFallback(userId: Long): UserDto? {
         return executeWithCircuitBreaker(
             operation = "getUser",
-            fallback = { 
+            fallback = {
                 logger.info("Using fallback for user {}", userId)
                 createFallbackUser(userId)
             }
@@ -1210,7 +1214,7 @@ class CircuitBreakerWebClientService(
                 .awaitBodyOrNull<UserDto>()
         }
     }
-    
+
     /**
      * Create user with retry and circuit breaker
      */
@@ -1220,8 +1224,8 @@ class CircuitBreakerWebClientService(
             fallback = {
                 logger.error("Failed to create user after circuit breaker opened")
                 throw ExternalServiceException(
-                    "User service", 
-                    "createUser", 
+                    "User service",
+                    "createUser",
                     "Service temporarily unavailable"
                 )
             }
@@ -1242,7 +1246,7 @@ class CircuitBreakerWebClientService(
             }
         }
     }
-    
+
     private fun createFallbackUser(userId: Long): UserDto {
         return UserDto(
             id = userId,
@@ -1255,7 +1259,7 @@ class CircuitBreakerWebClientService(
             updatedAt = LocalDateTime.now()
         )
     }
-    
+
     private fun recordCircuitBreakerMetric(operation: String, status: String) {
         meterRegistry.counter(
             "circuit.breaker.operation",
@@ -1297,7 +1301,7 @@ RestClient is the newest addition to Spring's HTTP client family, providing a mo
 ```kotlin
 @Configuration
 class RestClientConfiguration {
-    
+
     @Bean
     @Primary
     fun restClient(restClientBuilder: RestClient.Builder): RestClient {
@@ -1315,7 +1319,7 @@ class RestClientConfiguration {
             }
             .build()
     }
-    
+
     @Bean
     @Qualifier("userServiceRestClient")
     fun userServiceRestClient(
@@ -1330,7 +1334,7 @@ class RestClientConfiguration {
             }
             .build()
     }
-    
+
     @Bean
     @Qualifier("paymentServiceRestClient")
     fun paymentServiceRestClient(
@@ -1346,7 +1350,7 @@ class RestClientConfiguration {
             }
             .build()
     }
-    
+
     private fun getServiceToken(): String {
         // Implementation to get service token
         return "service-token"
@@ -1358,9 +1362,9 @@ class RestClientUserService(
     @Qualifier("userServiceRestClient") private val restClient: RestClient,
     private val meterRegistry: MeterRegistry
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(RestClientUserService::class.java)
-    
+
     /**
      * Get user by ID with modern RestClient approach
      */
@@ -1396,7 +1400,7 @@ class RestClientUserService(
             }
         }
     }
-    
+
     /**
      * Create user with comprehensive error handling
      */
@@ -1419,8 +1423,8 @@ class RestClientUserService(
                             }
                             HttpStatus.CONFLICT -> {
                                 throw DuplicateResourceException(
-                                    "User", 
-                                    "username/email", 
+                                    "User",
+                                    "username/email",
                                     createUserRequest.username
                                 )
                             }
@@ -1437,7 +1441,7 @@ class RestClientUserService(
             }
         }
     }
-    
+
     /**
      * Update user with partial data
      */
@@ -1474,7 +1478,7 @@ class RestClientUserService(
             }
         }
     }
-    
+
     /**
      * Get users with advanced query parameters
      */
@@ -1485,14 +1489,14 @@ class RestClientUserService(
                     .get()
                     .uri { uriBuilder ->
                         val builder = uriBuilder.path("/api/users/search")
-                        
+
                         searchCriteria.username?.let { builder.queryParam("username", it) }
                         searchCriteria.email?.let { builder.queryParam("email", it) }
                         searchCriteria.active?.let { builder.queryParam("active", it) }
                         builder.queryParam("page", searchCriteria.page)
                         builder.queryParam("size", searchCriteria.size)
                         searchCriteria.sort?.let { builder.queryParam("sort", it) }
-                        
+
                         builder.build()
                     }
                     .retrieve()
@@ -1515,7 +1519,7 @@ class RestClientUserService(
             }
         }
     }
-    
+
     /**
      * Delete user with confirmation
      */
@@ -1545,7 +1549,7 @@ class RestClientUserService(
             }
         }
     }
-    
+
     /**
      * Batch user creation with RestClient
      */
@@ -1565,7 +1569,7 @@ class RestClientUserService(
             }
         }
     }
-    
+
     /**
      * Stream users using RestClient for large datasets
      */
@@ -1577,7 +1581,7 @@ class RestClientUserService(
                 var page = 0
                 val size = 100
                 var hasMore = true
-                
+
                 while (hasMore) {
                     val pagedResponse = restClient
                         .get()
@@ -1585,9 +1589,9 @@ class RestClientUserService(
                         .retrieve()
                         .body(PagedUserResponse::class.java)
                         ?: break
-                    
+
                     pagedResponse.content.forEach(callback)
-                    
+
                     hasMore = !pagedResponse.last
                     page++
                 }
@@ -1597,20 +1601,20 @@ class RestClientUserService(
             }
         }
     }
-    
+
     private fun <T> recordMetrics(operation: String, block: () -> T): T {
         val timer = Timer.builder("rest.client.request.duration")
             .description("RestClient request duration")
             .tag("service", "user-service")
             .tag("operation", operation)
             .register(meterRegistry)
-        
+
         val counter = Counter.builder("rest.client.request.total")
             .description("Total RestClient requests")
             .tag("service", "user-service")
             .tag("operation", operation)
             .register(meterRegistry)
-        
+
         return timer.recordCallable {
             try {
                 val result = block()
@@ -1663,13 +1667,13 @@ data class BatchCreateFailure(
 // Test configuration for HTTP clients
 @TestConfiguration
 class TestHttpClientConfiguration {
-    
+
     @Bean
     @Primary
     fun mockWebServer(): MockWebServer {
         return MockWebServer()
     }
-    
+
     @Bean
     @Primary
     fun testRestClient(mockWebServer: MockWebServer): RestClient {
@@ -1677,9 +1681,9 @@ class TestHttpClientConfiguration {
             .baseUrl(mockWebServer.url("/").toString())
             .build()
     }
-    
+
     @Bean
-    @Primary  
+    @Primary
     fun testWebClient(mockWebServer: MockWebServer): WebClient {
         return WebClient.builder()
             .baseUrl(mockWebServer.url("/").toString())
@@ -1690,16 +1694,16 @@ class TestHttpClientConfiguration {
 @SpringBootTest
 @Import(TestHttpClientConfiguration::class)
 class HttpClientIntegrationTest {
-    
+
     @Autowired
     private lateinit var mockWebServer: MockWebServer
-    
+
     @Autowired
     private lateinit var restClientUserService: RestClientUserService
-    
+
     @Autowired
     private lateinit var reactiveUserService: ReactiveUserService
-    
+
     @AfterEach
     fun cleanup() {
         // Clean up any remaining requests
@@ -1709,7 +1713,7 @@ class HttpClientIntegrationTest {
             // Ignore
         }
     }
-    
+
     @Test
     fun `should get user successfully with RestClient`() {
         // Given
@@ -1724,50 +1728,50 @@ class HttpClientIntegrationTest {
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()
         )
-        
+
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
                 .setHeader("Content-Type", "application/json")
                 .setBody(jacksonObjectMapper().writeValueAsString(expectedUser))
         )
-        
+
         // When
         val result = restClientUserService.getUser(userId)
-        
+
         // Then
         assertThat(result).isNotNull
         assertThat(result!!.id).isEqualTo(userId)
         assertThat(result.username).isEqualTo("testuser")
-        
+
         val request = mockWebServer.takeRequest()
         assertThat(request.method).isEqualTo("GET")
         assertThat(request.path).isEqualTo("/api/users/1")
     }
-    
+
     @Test
     fun `should handle user not found gracefully`() {
         // Given
         val userId = 999L
-        
+
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(404)
                 .setHeader("Content-Type", "application/json")
                 .setBody("""{"error": "User not found"}""")
         )
-        
+
         // When
         val result = restClientUserService.getUser(userId)
-        
+
         // Then
         assertThat(result).isNull()
-        
+
         val request = mockWebServer.takeRequest()
         assertThat(request.method).isEqualTo("GET")
         assertThat(request.path).isEqualTo("/api/users/999")
     }
-    
+
     @Test
     fun `should create user successfully with reactive client`() = runBlocking {
         // Given
@@ -1778,7 +1782,7 @@ class HttpClientIntegrationTest {
             lastName = "User",
             password = "password123"
         )
-        
+
         val createdUser = UserDto(
             id = 2L,
             username = createRequest.username,
@@ -1789,30 +1793,30 @@ class HttpClientIntegrationTest {
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()
         )
-        
+
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(201)
                 .setHeader("Content-Type", "application/json")
                 .setBody(jacksonObjectMapper().writeValueAsString(createdUser))
         )
-        
+
         // When
         val result = reactiveUserService.createUser(createRequest)
-        
+
         // Then
         assertThat(result).isNotNull
         assertThat(result.id).isEqualTo(2L)
         assertThat(result.username).isEqualTo("newuser")
-        
+
         val request = mockWebServer.takeRequest()
         assertThat(request.method).isEqualTo("POST")
         assertThat(request.path).isEqualTo("/api/users")
-        
+
         val requestBody = jacksonObjectMapper().readValue(request.body.readUtf8(), CreateUserRequest::class.java)
         assertThat(requestBody.username).isEqualTo("newuser")
     }
-    
+
     @Test
     fun `should handle validation errors appropriately`() = runBlocking {
         // Given
@@ -1823,7 +1827,7 @@ class HttpClientIntegrationTest {
             lastName = "User",
             password = "123"
         )
-        
+
         val errorResponse = ErrorResponse(
             message = "Validation failed",
             errorCode = "VALIDATION_ERROR",
@@ -1834,14 +1838,14 @@ class HttpClientIntegrationTest {
             ),
             timestamp = Instant.now()
         )
-        
+
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(400)
                 .setHeader("Content-Type", "application/json")
                 .setBody(jacksonObjectMapper().writeValueAsString(errorResponse))
         )
-        
+
         // When & Then
         assertThrows<ValidationException> {
             runBlocking { reactiveUserService.createUser(createRequest) }
@@ -1851,7 +1855,7 @@ class HttpClientIntegrationTest {
                 "username", "email", "password"
             )
         }
-        
+
         val request = mockWebServer.takeRequest()
         assertThat(request.method).isEqualTo("POST")
         assertThat(request.path).isEqualTo("/api/users")

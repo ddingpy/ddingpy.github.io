@@ -1,8 +1,12 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
 
 # Chapter 02: Foundational Knowledge Before Development
+- TOC
+{:toc}
 
 Before we dive into writing code, let's establish a solid foundation of concepts that will make you a more effective Spring Boot developer. Understanding these principles will help you make better architectural decisions and write more maintainable applications.
 
@@ -41,26 +45,26 @@ class OrderProcessingService(
         // Non-blocking call using coroutines
         val inventory = checkInventory(order.items)
         val payment = processPayment(order.payment)
-        
+
         // Await both results concurrently
         return coroutineScope {
             val inventoryResult = async { inventory }
             val paymentResult = async { payment }
-            
+
             OrderResult(
                 inventoryStatus = inventoryResult.await(),
                 paymentStatus = paymentResult.await()
             )
         }
     }
-    
+
     private suspend fun checkInventory(items: List<OrderItem>): InventoryStatus {
         return webClient.post()
             .uri("http://inventory-service/check")
             .bodyValue(items)
             .awaitBody()
     }
-    
+
     private suspend fun processPayment(payment: PaymentInfo): PaymentStatus {
         return webClient.post()
             .uri("http://payment-service/process")
@@ -86,7 +90,7 @@ class OrderEventPublisher(
             totalAmount = order.totalAmount,
             timestamp = Instant.now()
         )
-        
+
         rabbitTemplate.convertAndSend(
             "order-events",  // exchange
             "order.created",  // routing key
@@ -130,7 +134,7 @@ fun main(args: Array<String>) {
     runApplication<Application>(*args) {
         // You can customize the startup here
         setBannerMode(Banner.Mode.OFF)
-        
+
         // Add custom initializers
         addInitializers(
             ApplicationContextInitializer<GenericApplicationContext> { context ->
@@ -176,7 +180,7 @@ Spring Boot's power comes from conditional configuration:
 ```kotlin
 @Configuration
 class DatabaseConfiguration {
-    
+
     @Bean
     @ConditionalOnProperty(
         name = ["app.database.cache.enabled"],
@@ -189,7 +193,7 @@ class DatabaseConfiguration {
                 .expireAfterWrite(10, TimeUnit.MINUTES))
         }
     }
-    
+
     @Bean
     @ConditionalOnMissingBean(DataSource::class)
     @ConditionalOnClass(HikariDataSource::class)
@@ -222,7 +226,7 @@ class ProductController(
             ?.let { ResponseEntity.ok(it.toDTO()) }
             ?: ResponseEntity.notFound().build()
     }
-    
+
     @PostMapping
     fun createProduct(@RequestBody @Valid request: CreateProductRequest): ProductDTO {
         return productService.createProduct(request).toDTO()
@@ -240,21 +244,21 @@ class ProductService(
     fun findById(id: Long): Product? {
         return productRepository.findById(id).orElse(null)
     }
-    
+
     fun createProduct(request: CreateProductRequest): Product {
         // Business logic: validation, calculations, orchestration
         val price = pricingService.calculatePrice(request.basePrice, request.category)
-        
+
         val product = Product(
             name = request.name,
             description = request.description,
             price = price,
             category = request.category
         )
-        
+
         val savedProduct = productRepository.save(product)
         inventoryService.initializeStock(savedProduct.id, request.initialStock)
-        
+
         return savedProduct
     }
 }
@@ -263,7 +267,7 @@ class ProductService(
 @Repository
 interface ProductRepository : JpaRepository<Product, Long> {
     fun findByCategory(category: String): List<Product>
-    
+
     @Query("SELECT p FROM Product p WHERE p.price BETWEEN :minPrice AND :maxPrice")
     fun findByPriceRange(minPrice: BigDecimal, maxPrice: BigDecimal): List<Product>
 }
@@ -302,7 +306,7 @@ class NotificationFactoryImpl(
     private val smsService: SmsService,
     private val pushService: PushService
 ) : NotificationFactory {
-    
+
     override fun createNotification(type: NotificationType, message: String): Notification {
         return when (type) {
             NotificationType.EMAIL -> EmailNotification(emailService, message)
@@ -327,20 +331,20 @@ data class ApiClient(
         // Fluent builder for complex configurations
         fun builder() = Builder()
     }
-    
+
     class Builder {
         private var baseUrl: String = ""
         private var timeout: Duration = Duration.ofSeconds(30)
         private var retryCount: Int = 3
         private val headers = mutableMapOf<String, String>()
         private val interceptors = mutableListOf<ClientInterceptor>()
-        
+
         fun baseUrl(url: String) = apply { baseUrl = url }
         fun timeout(duration: Duration) = apply { timeout = duration }
         fun retryCount(count: Int) = apply { retryCount = count }
         fun addHeader(key: String, value: String) = apply { headers[key] = value }
         fun addInterceptor(interceptor: ClientInterceptor) = apply { interceptors.add(interceptor) }
-        
+
         fun build(): ApiClient {
             require(baseUrl.isNotEmpty()) { "Base URL is required" }
             return ApiClient(baseUrl, timeout, retryCount, headers.toMap(), interceptors.toList())
@@ -362,16 +366,16 @@ val client = ApiClient.builder()
 @Component
 class ConfigurationManager {
     private val properties = mutableMapOf<String, String>()
-    
+
     init {
         // Initialization happens once
         loadProperties()
     }
-    
+
     private fun loadProperties() {
         // Load configuration from various sources
     }
-    
+
     fun getProperty(key: String): String? = properties[key]
 }
 ```
@@ -389,7 +393,7 @@ interface PaymentGateway {
 class StripeAdapter(
     private val stripeClient: StripeClient
 ) : PaymentGateway {
-    
+
     override fun processPayment(amount: BigDecimal, currency: String): PaymentResult {
         // Adapt our interface to Stripe's API
         val stripeAmount = (amount * BigDecimal(100)).toInt() // Stripe uses cents
@@ -398,7 +402,7 @@ class StripeAdapter(
             currency = currency.lowercase(),
             source = "tok_visa" // Would come from request
         )
-        
+
         // Adapt Stripe's response to our domain model
         return PaymentResult(
             transactionId = charge.id,
@@ -423,7 +427,7 @@ class DiscountPricingDecorator(
     @Qualifier("basic") private val basicPricing: PricingService,
     private val discountService: DiscountService
 ) : PricingService {
-    
+
     override fun calculatePrice(basePrice: BigDecimal, quantity: Int): BigDecimal {
         val basicPrice = basicPricing.calculatePrice(basePrice, quantity)
         val discount = discountService.getApplicableDiscount(quantity)
@@ -464,7 +468,7 @@ class ShippingService(
         weight: Double,
         distance: Double
     ): BigDecimal {
-        val strategy = strategies[type] 
+        val strategy = strategies[type]
             ?: throw IllegalArgumentException("Unknown shipping type: $type")
         return strategy.calculateShipping(weight, distance)
     }
@@ -486,7 +490,7 @@ class OrderService(
 ) {
     fun completeOrder(order: Order) {
         // Process order...
-        
+
         // Publish event for interested listeners
         eventPublisher.publishEvent(
             OrderCompletedEvent(order.id, order.customerId, order.totalAmount)
@@ -539,21 +543,21 @@ class BookController(
     ): Page<BookDTO> {
         return bookService.findAll(PageRequest.of(page, size))
     }
-    
+
     // GET /api/v1/books/{id} - Retrieve a specific book
     @GetMapping("/{id}")
     fun getBook(@PathVariable id: Long): BookDTO {
         return bookService.findById(id)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found")
     }
-    
+
     // POST /api/v1/books - Create a new book
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun createBook(@RequestBody @Valid book: CreateBookRequest): BookDTO {
         return bookService.create(book)
     }
-    
+
     // PUT /api/v1/books/{id} - Update an entire book
     @PutMapping("/{id}")
     fun updateBook(
@@ -562,7 +566,7 @@ class BookController(
     ): BookDTO {
         return bookService.update(id, book)
     }
-    
+
     // PATCH /api/v1/books/{id} - Partially update a book
     @PatchMapping("/{id}")
     fun patchBook(
@@ -571,7 +575,7 @@ class BookController(
     ): BookDTO {
         return bookService.partialUpdate(id, updates)
     }
-    
+
     // DELETE /api/v1/books/{id} - Delete a book
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -612,7 +616,7 @@ Responses should indicate whether they can be cached.
 @GetMapping("/api/products/{id}")
 fun getProduct(@PathVariable id: Long): ResponseEntity<ProductDTO> {
     val product = productService.findById(id)
-    
+
     return ResponseEntity.ok()
         .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS))
         .eTag(product.version.toString())
@@ -719,7 +723,7 @@ fun getProducts(
     @RequestParam(defaultValue = "20") size: Int
 ): Page<Product> {
     val pageable = PageRequest.of(page, size, Sort.by(direction, sortBy))
-    
+
     return if (category != null) {
         productRepository.findByCategory(category, pageable)
     } else {
@@ -773,13 +777,13 @@ data class UserDTO(
 
 fun example() {
     val user = UserDTO(1, "john", "john@example.com")
-    
+
     // Copy with modifications
     val updatedUser = user.copy(email = "newemail@example.com")
-    
+
     // Destructuring
     val (id, username, email) = user
-    
+
     println(user) // UserDTO(id=1, username=john, email=john@example.com, role=USER, createdAt=...)
 }
 ```
@@ -797,18 +801,18 @@ class UserService(
     fun findUser(id: Long): User? {
         return userRepository.findById(id).orElse(null)
     }
-    
+
     // Safe navigation
     fun getUserEmail(id: Long): String {
         val user = findUser(id)
         return user?.email ?: "no-email@example.com"  // Elvis operator provides default
     }
-    
+
     // Force non-null with !! (use sparingly!)
     fun getUserOrThrow(id: Long): User {
         return findUser(id) ?: throw UserNotFoundException("User $id not found")
     }
-    
+
     // Smart casting
     fun processUser(id: Long) {
         val user = findUser(id)
@@ -817,7 +821,7 @@ class UserService(
             println(user.email)  // No safe navigation needed
         }
     }
-    
+
     // let scope function for null-safe operations
     fun sendEmailIfExists(id: Long) {
         findUser(id)?.let { user ->
@@ -957,7 +961,7 @@ class ProductAnalytics(
             .take(limit)
             .map { ProductSummary(it.id, it.name, it.soldCount) }
     }
-    
+
     fun getCategoryStats(): Map<String, Int> {
         return productRepository.findAll()
             .groupingBy { it.category }
@@ -1003,7 +1007,7 @@ class AsyncController(
             val data1 = async { service.fetchData1() }
             val data2 = async { service.fetchData2() }
             val data3 = async { service.fetchData3() }
-            
+
             // Wait for all and combine
             listOf(data1.await(), data2.await(), data3.await()).flatten()
         }

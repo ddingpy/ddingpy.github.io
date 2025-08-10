@@ -4,6 +4,7 @@ title: Installation
 date: 2024-08-11
 description: hello
 nav_order: 2
+nav_exclude: true
 ---
 
 # Installation Guide

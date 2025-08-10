@@ -4,6 +4,7 @@ title: Recent Updates
 nav_order: 10
 description: "View the most recently updated documentation pages"
 permalink: /recent-updates/
+nav_exclude: true
 ---
 
 # Recent Updates

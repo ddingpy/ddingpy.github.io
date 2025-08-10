@@ -1,7 +1,11 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
 # Chapter 05: Various Ways to Write APIs
+- TOC
+{:toc}
 
 In this chapter, we'll explore the different approaches to building REST APIs with Spring Boot and Kotlin. We'll cover everything from basic controller setup to advanced documentation and logging strategies. By the end of this chapter, you'll understand how to create robust, well-documented APIs that follow modern best practices.
 
@@ -19,22 +23,22 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    
+
     // JSON processing
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
-    
+
     // API Documentation (Swagger/OpenAPI)
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
-    
+
     // Database
     implementation("org.postgresql:postgresql")
-    
+
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:junit-jupiter")
-    
+
     // Kotlin-specific
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
@@ -73,13 +77,13 @@ server:
 spring:
   application:
     name: spring-boot-kotlin-api
-  
+
   datasource:
     url: jdbc:postgresql://localhost:5432/api_db
     username: api_user
     password: api_password
     driver-class-name: org.postgresql.Driver
-    
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -137,7 +141,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 class WebConfig {
-    
+
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
@@ -146,12 +150,12 @@ class WebConfig {
             allowedHeaders = listOf("*")
             allowCredentials = true
         }
-        
+
         return UrlBasedCorsConfigurationSource().apply {
             registerCorsConfiguration("/**", configuration)
         }
     }
-    
+
     @Bean
     fun objectMapper(): ObjectMapper {
         return ObjectMapper().apply {
@@ -182,7 +186,7 @@ import org.springframework.web.bind.annotation.*
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     /**
      * Simple GET endpoint without parameters
      * GET /api/v1/products/health
@@ -197,7 +201,7 @@ class ProductController(
             )
         )
     }
-    
+
     /**
      * Get all products without parameters
      * GET /api/v1/products
@@ -218,7 +222,7 @@ class ProductController(
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     /**
      * Get product by ID using PathVariable
      * GET /api/v1/products/123
@@ -228,7 +232,7 @@ class ProductController(
         val product = productService.findById(id)
         return ResponseEntity.ok(product)
     }
-    
+
     /**
      * Get products by category using PathVariable
      * GET /api/v1/products/category/electronics
@@ -238,7 +242,7 @@ class ProductController(
         val products = productService.findByCategory(categoryName)
         return ResponseEntity.ok(products)
     }
-    
+
     /**
      * Complex path with multiple variables
      * GET /api/v1/products/category/electronics/brand/apple
@@ -262,7 +266,7 @@ class ProductController(
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     /**
      * Get products with pagination using RequestParam
      * GET /api/v1/products/search?page=0&size=10
@@ -284,11 +288,11 @@ class ProductController(
             sortBy = sortBy,
             sortDirection = sortDirection
         )
-        
+
         val result = productService.search(searchCriteria)
         return ResponseEntity.ok(result)
     }
-    
+
     /**
      * Get products with price filtering
      * GET /api/v1/products/filter?minPrice=10&maxPrice=100&inStock=true
@@ -306,7 +310,7 @@ class ProductController(
             inStock = inStock,
             tags = tags ?: emptyList()
         )
-        
+
         val products = productService.filter(filterCriteria)
         return ResponseEntity.ok(products)
     }
@@ -375,7 +379,7 @@ POST APIs are used for creating resources. Let's explore different patterns for 
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     /**
      * Create a new product using POST
      * POST /api/v1/products
@@ -385,7 +389,7 @@ class ProductController(
         val product = productService.create(createProductRequest)
         return ResponseEntity.status(201).body(product)
     }
-    
+
     /**
      * Bulk create products
      * POST /api/v1/products/bulk
@@ -408,7 +412,7 @@ import jakarta.validation.Valid
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     /**
      * Create product with validation
      * POST /api/v1/products
@@ -420,7 +424,7 @@ class ProductController(
         val product = productService.create(createProductRequest)
         return ResponseEntity.status(201).body(product)
     }
-    
+
     /**
      * Complex POST with additional parameters
      * POST /api/v1/products?notify=true&category=electronics
@@ -437,13 +441,13 @@ class ProductController(
         } else {
             createProductRequest
         }
-        
+
         val product = productService.create(finalRequest)
-        
+
         if (notify) {
             productService.sendNotification(product)
         }
-        
+
         return ResponseEntity.status(201).body(product)
     }
 }
@@ -461,24 +465,24 @@ data class CreateProductRequest(
     @field:NotBlank(message = "Product name is required")
     @field:Size(min = 2, max = 100, message = "Product name must be between 2 and 100 characters")
     val name: String,
-    
+
     @field:NotBlank(message = "Description is required")
     @field:Size(max = 500, message = "Description cannot exceed 500 characters")
     val description: String,
-    
+
     @field:NotNull(message = "Price is required")
     @field:Min(value = 0, message = "Price cannot be negative")
     val price: Double,
-    
+
     @field:NotBlank(message = "Category is required")
     val category: String,
-    
+
     @field:NotBlank(message = "Brand is required")
     val brand: String,
-    
+
     @field:Min(value = 0, message = "Stock quantity cannot be negative")
     val stockQuantity: Int = 0,
-    
+
     val tags: List<String> = emptyList()
 )
 
@@ -509,7 +513,7 @@ PUT APIs are used for updating entire resources. Let's explore different pattern
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     /**
      * Update entire product using PUT
      * PUT /api/v1/products/123
@@ -522,7 +526,7 @@ class ProductController(
         val updatedProduct = productService.update(id, updateProductRequest)
         return ResponseEntity.ok(updatedProduct)
     }
-    
+
     /**
      * Update with conditional logic
      * PUT /api/v1/products/123?force=true
@@ -553,7 +557,7 @@ class ProductController(
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     /**
      * Update with comprehensive response handling
      * PUT /api/v1/products/123
@@ -574,7 +578,7 @@ class ProductController(
             )
         }
     }
-    
+
     /**
      * Upsert operation (create or update)
      * PUT /api/v1/products/upsert/123
@@ -603,26 +607,26 @@ data class UpdateProductRequest(
     @field:NotBlank(message = "Product name is required")
     @field:Size(min = 2, max = 100, message = "Product name must be between 2 and 100 characters")
     val name: String,
-    
+
     @field:NotBlank(message = "Description is required")
     @field:Size(max = 500, message = "Description cannot exceed 500 characters")
     val description: String,
-    
+
     @field:NotNull(message = "Price is required")
     @field:Min(value = 0, message = "Price cannot be negative")
     val price: Double,
-    
+
     @field:NotBlank(message = "Category is required")
     val category: String,
-    
+
     @field:NotBlank(message = "Brand is required")
     val brand: String,
-    
+
     @field:Min(value = 0, message = "Stock quantity cannot be negative")
     val stockQuantity: Int,
-    
+
     val tags: List<String> = emptyList(),
-    
+
     val version: Long? = null // For optimistic locking
 )
 
@@ -661,7 +665,7 @@ DELETE APIs are used for removing resources. Let's explore different patterns fo
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     /**
      * Delete product by ID
      * DELETE /api/v1/products/123
@@ -671,7 +675,7 @@ class ProductController(
         productService.delete(id)
         return ResponseEntity.noContent().build()
     }
-    
+
     /**
      * Delete with confirmation
      * DELETE /api/v1/products/123?confirm=true
@@ -686,7 +690,7 @@ class ProductController(
                 mapOf("error" to "Deletion requires confirmation parameter")
             )
         }
-        
+
         return try {
             productService.delete(id)
             ResponseEntity.noContent().build()
@@ -705,7 +709,7 @@ class ProductController(
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     /**
      * Bulk delete by IDs
      * DELETE /api/v1/products?ids=1,2,3
@@ -715,7 +719,7 @@ class ProductController(
         val result = productService.deleteBulk(ids)
         return ResponseEntity.ok(result)
     }
-    
+
     /**
      * Delete by category
      * DELETE /api/v1/products/category?name=electronics&confirm=true
@@ -730,7 +734,7 @@ class ProductController(
                 mapOf("error" to "Category deletion requires confirmation")
             )
         }
-        
+
         val deletedCount = productService.deleteByCategory(name)
         return ResponseEntity.ok(
             mapOf(
@@ -739,7 +743,7 @@ class ProductController(
             )
         )
     }
-    
+
     /**
      * Soft delete with parameters
      * DELETE /api/v1/products/soft?ids=1,2,3&reason=discontinued
@@ -816,7 +820,7 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class OpenApiConfig {
-    
+
     @Bean
     fun customOpenAPI(): OpenAPI {
         return OpenAPI()
@@ -865,13 +869,13 @@ import io.swagger.v3.oas.annotations.tags.Tag
 @RestController
 @RequestMapping("/v1/products")
 @Tag(
-    name = "Products", 
+    name = "Products",
     description = "Product management operations including CRUD operations, search, and bulk operations"
 )
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     @Operation(
         summary = "Get all products",
         description = "Retrieve a paginated list of all products with optional filtering and sorting"
@@ -887,7 +891,7 @@ class ProductController(
                 )]
             ),
             ApiResponse(
-                responseCode = "400", 
+                responseCode = "400",
                 description = "Invalid request parameters",
                 content = [Content()]
             )
@@ -897,19 +901,19 @@ class ProductController(
     fun getAllProducts(
         @Parameter(description = "Page number (0-based)", example = "0")
         @RequestParam(defaultValue = "0") page: Int,
-        
+
         @Parameter(description = "Page size", example = "10")
         @RequestParam(defaultValue = "10") size: Int,
-        
+
         @Parameter(description = "Filter by product name", example = "iPhone")
         @RequestParam(required = false) name: String?,
-        
+
         @Parameter(description = "Filter by category", example = "electronics")
         @RequestParam(required = false) category: String?,
-        
+
         @Parameter(description = "Sort field", example = "name", schema = Schema(allowableValues = ["id", "name", "price", "createdAt"]))
         @RequestParam(defaultValue = "id") sortBy: String,
-        
+
         @Parameter(description = "Sort direction", example = "ASC", schema = Schema(allowableValues = ["ASC", "DESC"]))
         @RequestParam(defaultValue = "ASC") sortDirection: String
     ): ResponseEntity<PagedProductResponse> {
@@ -918,7 +922,7 @@ class ProductController(
         val result = productService.search(searchCriteria)
         return ResponseEntity.ok(result)
     }
-    
+
     @Operation(
         summary = "Get product by ID",
         description = "Retrieve a specific product by its unique identifier"
@@ -948,7 +952,7 @@ class ProductController(
         val product = productService.findById(id)
         return ResponseEntity.ok(product)
     }
-    
+
     @Operation(
         summary = "Create new product",
         description = "Create a new product with the provided information"
@@ -1004,34 +1008,34 @@ import java.time.LocalDateTime
 data class ProductDTO(
     @Schema(description = "Unique product identifier", example = "1")
     val id: Long,
-    
+
     @Schema(description = "Product name", example = "iPhone 13 Pro")
     val name: String,
-    
+
     @Schema(description = "Product description", example = "Latest iPhone with advanced camera system")
     val description: String,
-    
+
     @Schema(description = "Product price in USD", example = "999.99")
     val price: Double,
-    
+
     @Schema(description = "Product category", example = "electronics")
     val category: String,
-    
+
     @Schema(description = "Product brand", example = "Apple")
     val brand: String,
-    
+
     @Schema(description = "Whether product is in stock", example = "true")
     val inStock: Boolean,
-    
+
     @Schema(description = "Available stock quantity", example = "50")
     val stockQuantity: Int,
-    
+
     @Schema(description = "Product tags for categorization", example = "[\"smartphone\", \"premium\", \"latest\"]")
     val tags: List<String> = emptyList(),
-    
+
     @Schema(description = "Product creation timestamp")
     val createdAt: LocalDateTime,
-    
+
     @Schema(description = "Product last update timestamp")
     val updatedAt: LocalDateTime
 )
@@ -1042,29 +1046,29 @@ data class CreateProductRequest(
     @field:NotBlank(message = "Product name is required")
     @field:Size(min = 2, max = 100, message = "Product name must be between 2 and 100 characters")
     val name: String,
-    
+
     @Schema(description = "Product description", example = "Latest iPhone with advanced camera system", requiredMode = Schema.RequiredMode.REQUIRED)
     @field:NotBlank(message = "Description is required")
     @field:Size(max = 500, message = "Description cannot exceed 500 characters")
     val description: String,
-    
+
     @Schema(description = "Product price in USD", example = "999.99", requiredMode = Schema.RequiredMode.REQUIRED)
     @field:NotNull(message = "Price is required")
     @field:Min(value = 0, message = "Price cannot be negative")
     val price: Double,
-    
+
     @Schema(description = "Product category", example = "electronics", requiredMode = Schema.RequiredMode.REQUIRED)
     @field:NotBlank(message = "Category is required")
     val category: String,
-    
+
     @Schema(description = "Product brand", example = "Apple", requiredMode = Schema.RequiredMode.REQUIRED)
     @field:NotBlank(message = "Brand is required")
     val brand: String,
-    
+
     @Schema(description = "Initial stock quantity", example = "100", defaultValue = "0")
     @field:Min(value = 0, message = "Stock quantity cannot be negative")
     val stockQuantity: Int = 0,
-    
+
     @Schema(description = "Product tags", example = "[\"smartphone\", \"premium\"]")
     val tags: List<String> = emptyList()
 )
@@ -1088,7 +1092,7 @@ Create `logback-spring.xml` in `src/main/resources`:
                 <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %msg%n</pattern>
             </encoder>
         </appender>
-        
+
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>logs/application.log</file>
             <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -1102,13 +1106,13 @@ Create `logback-spring.xml` in `src/main/resources`:
                 <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
             </encoder>
         </appender>
-        
+
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>
         </root>
     </springProfile>
-    
+
     <springProfile name="prod">
         <!-- Production configuration -->
         <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -1125,21 +1129,21 @@ Create `logback-spring.xml` in `src/main/resources`:
                 <includeMdc>true</includeMdc>
             </encoder>
         </appender>
-        
+
         <root level="WARN">
             <appender-ref ref="JSON_FILE"/>
         </root>
     </springProfile>
-    
+
     <!-- Application specific loggers -->
     <logger name="com.example.api" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
-    
+
     <!-- HTTP request logging -->
     <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="DEBUG"/>
-    
+
     <!-- Database query logging -->
     <logger name="org.hibernate.SQL" level="DEBUG"/>
     <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
@@ -1159,7 +1163,7 @@ import org.springframework.web.filter.CommonsRequestLoggingFilter
 
 @Configuration
 class LoggingConfig {
-    
+
     @Bean
     fun requestLoggingFilter(): CommonsRequestLoggingFilter {
         return CommonsRequestLoggingFilter().apply {
@@ -1189,33 +1193,33 @@ import java.util.*
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
     companion object {
         private val logger = LoggerFactory.getLogger(ProductController::class.java)
     }
-    
+
     @GetMapping("/{id}")
     fun getProductById(@PathVariable id: Long): ResponseEntity<ProductDTO> {
         val requestId = UUID.randomUUID().toString()
-        
+
         // Add request context to MDC for structured logging
         MDC.put("requestId", requestId)
         MDC.put("operation", "getProductById")
         MDC.put("productId", id.toString())
-        
+
         return try {
             logger.info("Fetching product with ID: {}", id)
             val startTime = System.currentTimeMillis()
-            
+
             val product = productService.findById(id)
-            
+
             val duration = System.currentTimeMillis() - startTime
             logger.info("Successfully retrieved product with ID: {} in {}ms", id, duration)
-            
+
             // Log business metrics
-            logger.info("Product retrieved - name: '{}', category: '{}', price: {}", 
+            logger.info("Product retrieved - name: '{}', category: '{}', price: {}",
                        product.name, product.category, product.price)
-            
+
             ResponseEntity.ok(product)
         } catch (e: ProductNotFoundException) {
             logger.warn("Product not found with ID: {}", id, e)
@@ -1227,29 +1231,29 @@ class ProductController(
             MDC.clear() // Always clear MDC to prevent memory leaks
         }
     }
-    
+
     @PostMapping
     fun createProduct(@Valid @RequestBody createProductRequest: CreateProductRequest): ResponseEntity<ProductDTO> {
         val requestId = UUID.randomUUID().toString()
-        
+
         MDC.put("requestId", requestId)
         MDC.put("operation", "createProduct")
         MDC.put("productName", createProductRequest.name)
         MDC.put("category", createProductRequest.category)
-        
+
         return try {
             logger.info("Creating new product: {}", createProductRequest.name)
             val startTime = System.currentTimeMillis()
-            
+
             val product = productService.create(createProductRequest)
-            
+
             val duration = System.currentTimeMillis() - startTime
             logger.info("Successfully created product with ID: {} in {}ms", product.id, duration)
-            
+
             // Log business metrics
-            logger.info("Product created - ID: {}, name: '{}', category: '{}', price: {}", 
+            logger.info("Product created - ID: {}, name: '{}', category: '{}', price: {}",
                        product.id, product.name, product.category, product.price)
-            
+
             ResponseEntity.status(201).body(product)
         } catch (e: ProductAlreadyExistsException) {
             logger.warn("Attempt to create duplicate product: {}", createProductRequest.name, e)
@@ -1280,14 +1284,14 @@ import org.springframework.stereotype.Service
 class ProductService(
     private val productRepository: ProductRepository
 ) {
-    
+
     companion object {
         private val logger = LoggerFactory.getLogger(ProductService::class.java)
     }
-    
+
     fun findById(id: Long): ProductDTO {
         logger.debug("Searching for product with ID: {}", id)
-        
+
         return productRepository.findById(id)?.let { product ->
             logger.debug("Found product: {} (category: {})", product.name, product.category)
             product.toDTO()
@@ -1296,34 +1300,34 @@ class ProductService(
             throw ProductNotFoundException("Product not found with ID: $id")
         }
     }
-    
+
     fun create(request: CreateProductRequest): ProductDTO {
         logger.debug("Creating product: {} in category: {}", request.name, request.category)
-        
+
         // Check for duplicates
         productRepository.findByNameAndCategory(request.name, request.category)?.let {
             logger.warn("Duplicate product creation attempt: {} in category: {}", request.name, request.category)
             throw ProductAlreadyExistsException("Product '${request.name}' already exists in category '${request.category}'")
         }
-        
+
         val product = Product.from(request)
         val savedProduct = productRepository.save(product)
-        
+
         logger.info("Product created successfully - ID: {}, name: '{}'", savedProduct.id, savedProduct.name)
-        
+
         return savedProduct.toDTO()
     }
-    
+
     fun search(criteria: ProductSearchCriteria): PagedProductResponse {
         logger.debug("Searching products with criteria: {}", criteria)
-        
+
         val startTime = System.currentTimeMillis()
         val result = productRepository.search(criteria)
         val duration = System.currentTimeMillis() - startTime
-        
-        logger.info("Search completed in {}ms - found {} products out of {} total", 
+
+        logger.info("Search completed in {}ms - found {} products out of {} total",
                    duration, result.content.size, result.totalElements)
-        
+
         return result
     }
 }
@@ -1345,31 +1349,31 @@ import org.springframework.stereotype.Component
 @Aspect
 @Component
 class LoggingAspect {
-    
+
     companion object {
         private val logger = LoggerFactory.getLogger(LoggingAspect::class.java)
     }
-    
+
     @Around("@annotation(Timed)")
     fun logExecutionTime(joinPoint: ProceedingJoinPoint): Any? {
         val methodName = joinPoint.signature.name
         val className = joinPoint.signature.declaringType.simpleName
-        
+
         val startTime = System.currentTimeMillis()
         MDC.put("method", "$className.$methodName")
-        
+
         return try {
             logger.debug("Starting execution of {}.{}", className, methodName)
             val result = joinPoint.proceed()
             val duration = System.currentTimeMillis() - startTime
-            
+
             logger.info("Method {}.{} executed in {}ms", className, methodName, duration)
-            
+
             // Log slow operations
             if (duration > 1000) {
                 logger.warn("Slow operation detected: {}.{} took {}ms", className, methodName, duration)
             }
-            
+
             result
         } catch (e: Exception) {
             val duration = System.currentTimeMillis() - startTime
@@ -1394,7 +1398,7 @@ In this comprehensive chapter, we've explored the various ways to write APIs wit
 
 1. **Project Configuration**: Setting up a robust foundation with proper dependencies, configuration, and structure for API development.
 
-2. **GET APIs**: 
+2. **GET APIs**:
    - Using `@RequestMapping` with different patterns
    - Handling `@PathVariable` for resource identification
    - Managing `@RequestParam` for filtering and pagination

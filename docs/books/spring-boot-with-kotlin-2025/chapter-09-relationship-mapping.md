@@ -1,7 +1,11 @@
 ---
 layout: default
+parent: Spring Boot with Kotlin (2025)
+nav_exclude: true
 ---
 # Chapter 09: Relationship Mapping
+- TOC
+{:toc}
 
 Modeling relationships between entities is one of the most critical aspects of building a data-driven application. Get it right, and your application will be performant and maintainable. Get it wrong, and you'll face the dreaded N+1 problem, lazy loading exceptions, and performance nightmares. In this chapter, we'll explore how to properly map relationships in JPA with Kotlin, understanding the trade-offs and best practices for each approach.
 
@@ -21,13 +25,13 @@ class User(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false, unique = true)
     var email: String,
-    
+
     @Column(nullable = false)
     var username: String,
-    
+
     // Owner side of the relationship
     @OneToOne(
         mappedBy = "user",
@@ -49,17 +53,17 @@ class User(
 class UserProfile(
     @Id
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var firstName: String,
-    
+
     @Column(nullable = false)
     var lastName: String,
-    
+
     var bio: String? = null,
-    
+
     var avatarUrl: String? = null,
-    
+
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "id")
@@ -73,13 +77,13 @@ class Employee(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var employeeNumber: String,
-    
+
     @Column(nullable = false)
     var name: String,
-    
+
     @OneToOne(
         cascade = [CascadeType.ALL],
         fetch = FetchType.LAZY
@@ -98,13 +102,13 @@ class ParkingSpot(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false, unique = true)
     var spotNumber: String,
-    
+
     @Column(nullable = false)
     var floor: Int,
-    
+
     @OneToOne(
         mappedBy = "parkingSpot",
         fetch = FetchType.LAZY
@@ -127,10 +131,10 @@ class Customer(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var email: String,
-    
+
     @Embedded
     var address: Address = Address()
 )
@@ -157,13 +161,13 @@ class Department(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false, unique = true)
     var name: String,
-    
+
     @Column(nullable = false)
     var code: String,
-    
+
     // One-to-Many side
     @OneToMany(
         mappedBy = "department",
@@ -178,12 +182,12 @@ class Department(
         employees.add(employee)
         employee.department = this
     }
-    
+
     fun removeEmployee(employee: Employee) {
         employees.remove(employee)
         employee.department = null
     }
-    
+
     fun clearEmployees() {
         employees.forEach { it.department = null }
         employees.clear()
@@ -196,15 +200,15 @@ class Employee(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var name: String,
-    
+
     @Column(nullable = false, unique = true)
     var employeeId: String,
-    
+
     var salary: BigDecimal,
-    
+
     // Many-to-One side (owner of the relationship)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
@@ -216,7 +220,7 @@ class Employee(
         if (other !is Employee) return false
         return id != null && id == other.id
     }
-    
+
     override fun hashCode(): Int {
         return javaClass.hashCode()
     }
@@ -229,12 +233,12 @@ class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false, unique = true)
     var orderNumber: String,
-    
+
     var orderDate: LocalDateTime = LocalDateTime.now(),
-    
+
     // Unidirectional - Order owns the relationship
     @OneToMany(
         cascade = [CascadeType.ALL],
@@ -247,11 +251,11 @@ class Order(
     fun addItem(item: OrderItem) {
         items.add(item)
     }
-    
+
     fun removeItem(item: OrderItem) {
         items.remove(item)
     }
-    
+
     fun getTotalAmount(): BigDecimal {
         return items.map { it.price * BigDecimal(it.quantity) }
             .fold(BigDecimal.ZERO, BigDecimal::add)
@@ -264,16 +268,16 @@ class OrderItem(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var productId: String,
-    
+
     @Column(nullable = false)
     var productName: String,
-    
+
     @Column(nullable = false)
     var quantity: Int,
-    
+
     @Column(nullable = false, precision = 10, scale = 2)
     var price: BigDecimal
 )
@@ -284,7 +288,7 @@ class OrderItem(
 ```kotlin
 @Repository
 interface DepartmentRepository : JpaRepository<Department, Long> {
-    
+
     // Fetch with JOIN to avoid N+1 problem
     @Query("""
         SELECT DISTINCT d FROM Department d
@@ -292,11 +296,11 @@ interface DepartmentRepository : JpaRepository<Department, Long> {
         WHERE d.id IN :ids
     """)
     fun findByIdsWithEmployees(@Param("ids") ids: List<Long>): List<Department>
-    
+
     // Using @EntityGraph for fetching strategy
     @EntityGraph(attributePaths = ["employees"])
     override fun findById(id: Long): Optional<Department>
-    
+
     // Batch fetching configuration
     @Query("SELECT d FROM Department d")
     @QueryHints(QueryHint(name = "org.hibernate.fetchSize", value = "25"))
@@ -316,13 +320,13 @@ class Student(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var name: String,
-    
+
     @Column(nullable = false, unique = true)
     var studentId: String,
-    
+
     @ManyToMany(
         cascade = [CascadeType.PERSIST, CascadeType.MERGE],
         fetch = FetchType.LAZY
@@ -338,18 +342,18 @@ class Student(
         courses.add(course)
         course.students.add(this)
     }
-    
+
     fun withdrawFromCourse(course: Course) {
         courses.remove(course)
         course.students.remove(this)
     }
-    
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Student) return false
         return id != null && id == other.id
     }
-    
+
     override fun hashCode(): Int = javaClass.hashCode()
 }
 
@@ -359,15 +363,15 @@ class Course(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false, unique = true)
     var courseCode: String,
-    
+
     @Column(nullable = false)
     var title: String,
-    
+
     var credits: Int,
-    
+
     @ManyToMany(
         mappedBy = "courses",
         fetch = FetchType.LAZY
@@ -379,7 +383,7 @@ class Course(
         if (other !is Course) return false
         return id != null && id == other.id
     }
-    
+
     override fun hashCode(): Int = javaClass.hashCode()
 }
 
@@ -389,22 +393,22 @@ class Course(
 class Enrollment(
     @EmbeddedId
     var id: EnrollmentId = EnrollmentId(),
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("studentId")
     @JoinColumn(name = "student_id")
     var student: Student,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("courseId")
     @JoinColumn(name = "course_id")
     var course: Course,
-    
+
     @Column(nullable = false)
     var enrollmentDate: LocalDate = LocalDate.now(),
-    
+
     var grade: String? = null,
-    
+
     @Enumerated(EnumType.STRING)
     var status: EnrollmentStatus = EnrollmentStatus.ACTIVE
 ) {
@@ -413,7 +417,7 @@ class Enrollment(
         if (other !is Enrollment) return false
         return id == other.id
     }
-    
+
     override fun hashCode(): Int = id.hashCode()
 }
 
@@ -427,7 +431,7 @@ class EnrollmentId(
         if (other !is EnrollmentId) return false
         return studentId == other.studentId && courseId == other.courseId
     }
-    
+
     override fun hashCode(): Int {
         return Objects.hash(studentId, courseId)
     }
@@ -454,18 +458,18 @@ class Comment(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false, length = 1000)
     var content: String,
-    
+
     @Column(nullable = false)
     var authorName: String,
-    
+
     // Only Comment knows about Post
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
     var post: Post,
-    
+
     var createdAt: LocalDateTime = LocalDateTime.now()
 )
 
@@ -475,10 +479,10 @@ class Post(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var title: String,
-    
+
     @Column(columnDefinition = "TEXT")
     var content: String
     // No reference to comments - unidirectional
@@ -504,12 +508,12 @@ class Author(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var name: String,
-    
+
     var biography: String? = null,
-    
+
     @OneToMany(
         mappedBy = "author",
         cascade = [CascadeType.ALL],
@@ -520,18 +524,18 @@ class Author(
     // Expose as immutable collection
     val books: Set<Book>
         get() = _books.toSet()
-    
+
     // Helper methods maintain consistency
     fun addBook(book: Book) {
         _books.add(book)
         book.author = this
     }
-    
+
     fun removeBook(book: Book) {
         _books.remove(book)
         book.author = null
     }
-    
+
     fun removeAllBooks() {
         _books.forEach { it.author = null }
         _books.clear()
@@ -544,13 +548,13 @@ class Book(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var title: String,
-    
+
     @Column(nullable = false, unique = true)
     var isbn: String,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id")
     var author: Author? = null
@@ -560,7 +564,7 @@ class Book(
         if (other !is Book) return false
         return isbn == other.isbn
     }
-    
+
     override fun hashCode(): Int {
         return isbn.hashCode()
     }
@@ -582,7 +586,7 @@ class Book(
 class Order(
     @Id
     var id: Long? = null,
-    
+
     @OneToMany(cascade = [CascadeType.ALL])
     @JoinColumn(name = "order_id")
     var items: List<OrderItem> = listOf()
@@ -598,12 +602,12 @@ class Order(
 class Project(
     @Id
     var id: Long? = null,
-    
+
     @OneToMany(mappedBy = "project")
     private val _tasks: MutableSet<Task> = mutableSetOf()
 ) {
     val tasks: Set<Task> get() = _tasks
-    
+
     fun addTask(task: Task) {
         _tasks.add(task)
         task.project = this
@@ -614,7 +618,7 @@ class Project(
 class Task(
     @Id
     var id: Long? = null,
-    
+
     @ManyToOne
     var project: Project? = null
 )
@@ -634,10 +638,10 @@ class ShoppingCart(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var sessionId: String,
-    
+
     // CASCADE.ALL = PERSIST, MERGE, REMOVE, REFRESH, DETACH
     @OneToMany(
         cascade = [CascadeType.ALL],
@@ -649,10 +653,10 @@ class ShoppingCart(
 ) {
     val items: List<CartItem>
         get() = _items.toList()
-    
+
     fun addItem(product: Product, quantity: Int) {
         val existingItem = _items.find { it.productId == product.id }
-        
+
         if (existingItem != null) {
             existingItem.quantity += quantity
         } else {
@@ -664,15 +668,15 @@ class ShoppingCart(
             ))
         }
     }
-    
+
     fun removeItem(productId: Long) {
         _items.removeIf { it.productId == productId }
     }
-    
+
     fun clear() {
         _items.clear()
     }
-    
+
     fun updateQuantity(productId: Long, newQuantity: Int) {
         if (newQuantity <= 0) {
             removeItem(productId)
@@ -688,16 +692,16 @@ class CartItem(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var productId: Long,
-    
+
     @Column(nullable = false)
     var productName: String,
-    
+
     @Column(nullable = false)
     var price: BigDecimal,
-    
+
     @Column(nullable = false)
     var quantity: Int
 ) {
@@ -715,10 +719,10 @@ class Company(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var name: String,
-    
+
     // Full cascade - departments are owned by company
     @OneToMany(
         mappedBy = "company",
@@ -726,7 +730,7 @@ class Company(
         orphanRemoval = true
     )
     var departments: MutableSet<Department> = mutableSetOf(),
-    
+
     // Only PERSIST and MERGE - contacts can exist independently
     @OneToMany(
         cascade = [CascadeType.PERSIST, CascadeType.MERGE]
@@ -737,7 +741,7 @@ class Company(
         inverseJoinColumns = [JoinColumn(name = "contact_id")]
     )
     var contacts: MutableSet<Contact> = mutableSetOf(),
-    
+
     // No cascade - documents are managed separately
     @OneToMany(mappedBy = "company")
     var documents: MutableSet<Document> = mutableSetOf()
@@ -754,12 +758,12 @@ class Invoice(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false, unique = true)
     var invoiceNumber: String,
-    
+
     var issueDate: LocalDate = LocalDate.now(),
-    
+
     // orphanRemoval = true means items are deleted when removed from collection
     @OneToMany(
         cascade = [CascadeType.ALL],
@@ -771,15 +775,15 @@ class Invoice(
 ) {
     val lineItems: List<InvoiceLineItem>
         get() = _lineItems.toList()
-    
+
     fun addLineItem(item: InvoiceLineItem) {
         _lineItems.add(item)
     }
-    
+
     fun removeLineItem(item: InvoiceLineItem) {
         _lineItems.remove(item)  // Item will be deleted from database
     }
-    
+
     fun replaceLineItems(newItems: List<InvoiceLineItem>) {
         _lineItems.clear()  // All existing items will be deleted
         _lineItems.addAll(newItems)
@@ -792,12 +796,12 @@ class Invoice(
 class InvoiceService(
     private val invoiceRepository: InvoiceRepository
 ) {
-    
+
     fun createInvoice(request: CreateInvoiceRequest): Invoice {
         val invoice = Invoice(
             invoiceNumber = generateInvoiceNumber()
         )
-        
+
         // Line items will be persisted automatically (CascadeType.PERSIST)
         request.items.forEach { itemRequest ->
             invoice.addLineItem(InvoiceLineItem(
@@ -806,14 +810,14 @@ class InvoiceService(
                 unitPrice = itemRequest.unitPrice
             ))
         }
-        
+
         return invoiceRepository.save(invoice)
     }
-    
+
     fun updateInvoice(id: Long, request: UpdateInvoiceRequest): Invoice {
         val invoice = invoiceRepository.findById(id)
             .orElseThrow { EntityNotFoundException("Invoice not found") }
-        
+
         // This will delete all existing items and create new ones
         invoice.replaceLineItems(
             request.items.map { itemRequest ->
@@ -824,11 +828,11 @@ class InvoiceService(
                 )
             }
         )
-        
+
         // Changes will be persisted automatically (CascadeType.MERGE)
         return invoice
     }
-    
+
     fun deleteInvoice(id: Long) {
         // All line items will be deleted automatically (CascadeType.REMOVE)
         invoiceRepository.deleteById(id)
@@ -847,19 +851,19 @@ class Project(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var name: String,
-    
+
     @Enumerated(EnumType.STRING)
     var status: ProjectStatus = ProjectStatus.PLANNING,
-    
+
     @OneToMany(
         mappedBy = "project",
         cascade = [CascadeType.PERSIST, CascadeType.MERGE]
     )
     private val _tasks: MutableSet<Task> = mutableSetOf(),
-    
+
     @OneToMany(
         mappedBy = "project",
         cascade = [CascadeType.ALL],
@@ -874,7 +878,7 @@ class Project(
             throw IllegalStateException("Cannot delete project with incomplete tasks")
         }
     }
-    
+
     @PostPersist
     private fun postPersist() {
         // Automatically create initial milestone
@@ -896,14 +900,14 @@ abstract class Content(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-    
+
     @Column(nullable = false)
     var title: String,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id")
     var author: User? = null,
-    
+
     @OneToMany(
         cascade = [CascadeType.ALL],
         orphanRemoval = true
@@ -939,20 +943,20 @@ class RelationshipPerformanceService(
     private val entityManager: EntityManager,
     private val departmentRepository: DepartmentRepository
 ) {
-    
+
     // Bad: Loading entire object graph
     fun inefficientUpdate(departmentId: Long, employeeName: String) {
         val department = departmentRepository.findById(departmentId).orElseThrow()
         // This loads ALL employees due to cascade
         department.employees.find { it.name == employeeName }?.salary = BigDecimal(100000)
     }
-    
+
     // Good: Targeted update
     fun efficientUpdate(departmentId: Long, employeeName: String) {
         val query = entityManager.createQuery("""
-            UPDATE Employee e 
-            SET e.salary = :salary 
-            WHERE e.department.id = :deptId 
+            UPDATE Employee e
+            SET e.salary = :salary
+            WHERE e.department.id = :deptId
             AND e.name = :name
         """)
         query.setParameter("salary", BigDecimal(100000))
@@ -960,14 +964,14 @@ class RelationshipPerformanceService(
         query.setParameter("name", employeeName)
         query.executeUpdate()
     }
-    
+
     // Batch operations with cascade
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun batchCreateWithCascade(departments: List<Department>) {
         var count = 0
         departments.forEach { dept ->
             entityManager.persist(dept)  // Cascades to employees
-            
+
             if (++count % 20 == 0) {
                 entityManager.flush()
                 entityManager.clear()
