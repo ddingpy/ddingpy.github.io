@@ -73,6 +73,10 @@ gh_edit_repository: "https://github.com/yourusername/yourrepository"
 gh_edit_branch: "main"
 gh_edit_view_mode: "tree"
 
+# Google Analytics
+ga_tracking: "G-QWFJXKNR3H"
+ga_tracking_anonymize_ip: true
+
 # Exclude from processing.
 # The following items will not be processed, by default.
 # Any item listed under the `exclude:` key here will be automatically added to
